@@ -3,69 +3,70 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-  <meta name="theme-color" content="#f4efe6">
-  <meta name="description" content="Prototype mobile Loomi pour construire une tête inspirée de la méthode Loomis à partir d'une photo.">
-  <title>Loomi Engine Alpha</title>
+  <meta name="theme-color" content="#efe8dc">
+  <title>Loomi Engine IA Alpha</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <main class="app">
-    <header>
-      <div class="brand">LOOMI</div>
-      <div class="version">Engine Alpha</div>
+    <header class="topbar">
+      <div>
+        <div class="brand">LOOMI</div>
+        <div class="subtitle">Engine IA Alpha</div>
+      </div>
+      <span class="pill" id="engineStatus">Chargement de l’IA…</span>
     </header>
 
-    <section class="stage" id="stage" aria-label="Zone de construction Loomi">
-      <canvas id="canvas" width="900" height="1200"></canvas>
+    <section class="stage" id="stage">
+      <canvas id="canvas"></canvas>
 
-      <div class="empty" id="empty">
-        <h1>Construis la tête à partir d’une photo</h1>
-        <p>Charge une photo, place six repères, puis Loomi génère une construction inclinée et ajustable.</p>
-        <label class="file-label" for="photoInput">📷 Choisir une photo</label>
+      <div class="welcome" id="welcome">
+        <div class="icon">◯</div>
+        <h1>Une photo. Une construction.</h1>
+        <p>Loomi analyse automatiquement le visage et génère les volumes essentiels.</p>
+        <label for="photoInput" class="primary">Choisir une photo</label>
       </div>
 
-      <div class="floating hidden" id="floating">
-        <div class="instruction" id="instruction">Touchez le premier repère.</div>
+      <div class="loading hidden" id="loading">
+        <div class="spinner"></div>
+        <strong>Analyse du visage…</strong>
+        <span>Le moteur cherche les repères et l’inclinaison.</span>
       </div>
     </section>
 
-    <div class="step-dots hidden" id="stepDots" aria-label="Progression de l’analyse"></div>
-
-    <section class="panel">
-      <div class="badge" id="statusBadge">Aucune photo chargée</div>
-      <p class="mode-title" id="modeTitle">Prototype guidé</p>
-
-      <div class="actions">
-        <label class="file-label secondary" for="photoInput">Changer la photo</label>
-        <button id="startBtn" class="accent" type="button" disabled>✨ Placer 6 repères</button>
-        <button id="undoPointBtn" class="secondary hidden" type="button">↶ Annuler le point</button>
-        <button id="cancelBtn" class="danger hidden" type="button">✕ Annuler l’analyse</button>
-        <button id="editBtn" class="secondary hidden" type="button">✋ Ajuster les repères</button>
-        <button id="saveBtn" class="wide hidden" type="button">💾 Enregistrer l’image</button>
+    <section class="controls">
+      <div class="status-row">
+        <div>
+          <span class="eyebrow">Mode</span>
+          <strong id="modeLabel">Automatique</strong>
+        </div>
+        <span class="result-pill" id="resultLabel">Aucune photo</span>
       </div>
 
-      <div class="small-actions hidden" id="editActions">
-        <button class="secondary" id="resetBtn" type="button">Réinitialiser</button>
-        <button class="secondary" id="hideHandlesBtn" type="button">Masquer les poignées</button>
+      <div class="grid">
+        <label for="photoInput" class="secondary">Changer la photo</label>
+        <button id="analyseBtn" class="primary" disabled>Analyser</button>
+        <button id="toggleGuidesBtn" class="secondary" disabled>Masquer les guides</button>
+        <button id="downloadBtn" class="dark" disabled>Enregistrer l’image</button>
       </div>
 
-      <div class="settings hidden" id="settings">
-        <label class="range">Épaisseur des traits
-          <input id="widthRange" type="range" min="1" max="8" value="3" step="1">
+      <div class="sliders">
+        <label>Épaisseur
+          <input id="widthRange" type="range" min="1" max="8" value="3">
         </label>
-        <label class="range">Transparence des traits
-          <input id="opacityRange" type="range" min="20" max="100" value="92" step="1">
+        <label>Transparence
+          <input id="opacityRange" type="range" min="20" max="100" value="92">
         </label>
       </div>
 
-      <p class="notice" id="notice">
-        Alpha guidée : l’utilisateur pose six points, puis le moteur calcule l’inclinaison, le crâne, l’axe, le plan latéral et la mâchoire.
+      <p class="note">
+        Cette Alpha utilise MediaPipe dans le navigateur. La photo reste sur ton appareil.
       </p>
     </section>
 
     <input id="photoInput" type="file" accept="image/*">
   </main>
 
-  <script src="app.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>

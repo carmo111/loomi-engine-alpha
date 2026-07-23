@@ -1,56 +1,41 @@
-# Loomi Engine Alpha
+# Loomi Engine IA Alpha
 
-Prototype web mobile prêt pour **GitHub Pages**.
+Première version avec détection automatique du visage dans le navigateur.
 
 ## Fonctionnalités
 
-- Import d’une photo depuis Android, iPhone ou ordinateur.
-- Analyse guidée avec 6 points :
-  1. œil gauche ;
-  2. œil droit ;
-  3. base du nez ;
-  4. menton ;
-  5. tempe gauche ;
-  6. tempe droite.
-- Calcul automatique de l’inclinaison.
-- Construction du crâne, de l’axe, du plan latéral et de la mâchoire.
-- Ajustement tactile des principaux repères.
+- Import d’une photo.
+- Détection automatique du visage avec MediaPipe Face Landmarker.
+- Calcul automatique de l’inclinaison des yeux.
+- Construction automatique :
+  - crâne ;
+  - axe du visage ;
+  - ligne des yeux ;
+  - ligne du nez ;
+  - plan latéral ;
+  - mâchoire.
 - Réglage de l’épaisseur et de la transparence.
+- Masquage des guides.
 - Export PNG.
 
-## Mise en ligne avec GitHub Pages
+## Mise à jour du dépôt GitHub
 
-1. Crée un nouveau dépôt GitHub, par exemple `loomi-engine-alpha`.
-2. Décompresse ce dossier.
-3. Ajoute à la racine du dépôt :
+Dans ton dépôt `loomi-engine-alpha` :
+
+1. Clique sur **Add file**.
+2. Clique sur **Upload files**.
+3. Ajoute les trois fichiers :
    - `index.html`
    - `styles.css`
    - `app.js`
-   - `README.md`
-4. Dans GitHub, ouvre **Settings**.
-5. Dans le menu de gauche, ouvre **Pages**.
-6. Dans **Build and deployment**, choisis :
-   - Source : `Deploy from a branch`
-   - Branch : `main`
-   - Folder : `/ (root)`
-7. Enregistre.
-8. GitHub affichera ensuite l’adresse publique du prototype.
+4. Accepte le remplacement des anciens fichiers.
+5. Clique sur **Commit changes**.
+6. Attends environ une minute, puis recharge ton site GitHub Pages.
 
-## Important
+## Connexion Internet
 
-Cette Alpha n’utilise pas encore une détection automatique par intelligence artificielle.
-Les 6 points sont posés manuellement afin de valider le moteur de construction et l’expérience tactile.
-
-## Structure
-
-```text
-loomi-engine-alpha/
-├── index.html
-├── styles.css
-├── app.js
-└── README.md
-```
+Cette Alpha charge MediaPipe et son modèle depuis Internet. Elle fonctionne donc avec une connexion active.
 
 ## Confidentialité
 
-Les photos sont traitées directement dans le navigateur et ne sont pas envoyées vers un serveur par ce prototype.
+La photo est analysée localement dans le navigateur. Elle n’est pas envoyée vers un serveur Loomi.
