@@ -1,37 +1,22 @@
-# Loomi Engine V3
+# Loomi Engine V4
 
-Version robuste compatible GitHub Pages.
+V4 améliore la qualité artistique et la perspective de la construction.
 
-## Nouveautés
+## Nouveautés V4
 
-- Import de photo indépendant du moteur IA
-- MediaPipe FaceMesh chargé avec un script classique, plus compatible avec Safari
-- Détection automatique de 468 repères
-- Construction Loomi automatique
-- Mode manuel à 6 points toujours disponible
-- Poignées de correction
-- Export PNG
-- Diagnostic technique intégré
-- Installation possible comme application web
-- Numéros de version dans les liens CSS et JavaScript pour éviter l'ancien cache
+- Crâne plus compact et mieux placé derrière le masque facial
+- Estimation de la rotation gauche/droite de la tête
+- Estimation légère de l'inclinaison verticale
+- Plan latéral placé sur le côté fuyant
+- Mâchoire asymétrique en vue trois-quarts
+- Axe central déformé selon la rotation
+- Lignes du nez et de la bouche courbées selon la perspective
+- Mode automatique, mode manuel, poignées, diagnostic et export PNG conservés
 
-## Mise à jour GitHub
+## Installation
 
-Remplace les anciens fichiers par tous les fichiers de cette archive :
+Remplace tous les fichiers du dépôt par ceux de cette archive, puis valide avec **Commit changes**.
 
-- index.html
-- styles.css
-- app.js
-- manifest.webmanifest
-- sw.js
-- icon.svg
-- README.md
+Ouvre ensuite le site dans une fenêtre privée pour le premier test :
 
-Attends ensuite 1 à 3 minutes, puis ouvre le site dans une fenêtre privée pour le premier test.
-
-## Test conseillé
-
-1. Vérifie que le badge indique « Moteur prêt ».
-2. Importe une photo.
-3. Attends l'apparition de la construction.
-4. En cas d'échec, clique sur « Diagnostic technique » et copie le contenu.
+https://carmo111.github.io/loomi-engine-alpha/

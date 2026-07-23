@@ -194,42 +194,100 @@
   const dist = (a,b) => Math.hypot(a.x-b.x,a.y-b.y);
 
   function buildGuides(lm) {
-    const leftEye = P(lm[33]), rightEye = P(lm[263]);
-    const leftTemple = P(lm[234]), rightTemple = P(lm[454]);
-    const forehead = P(lm[10]), chin = P(lm[152]), nose = P(lm[1]), mouth = P(lm[13]);
-    const eyeCenter = mid(leftEye, rightEye);
-    const angle = Math.atan2(rightEye.y-leftEye.y, rightEye.x-leftEye.x);
-    const faceWidth = dist(leftTemple,rightTemple);
-    const faceHeight = dist(forehead,chin);
+    // MediaPipe anchors chosen for stability across front, three-quarter and profile views.
+    const leftEyeOuter = P(lm[33]);
+    const rightEyeOuter = P(lm[263]);
+    const leftEyeInner = P(lm[133]);
+    const rightEyeInner = P(lm[362]);
+    const leftTempleRaw = P(lm[234]);
+    const rightTempleRaw = P(lm[454]);
+    const leftJaw = P(lm[172]);
+    const rightJaw = P(lm[397]);
+    const forehead = P(lm[10]);
+    const chin = P(lm[152]);
+    const nose = P(lm[1]);
+    const noseBridge = P(lm[6]);
+    const mouth = P(lm[13]);
+    const leftCheek = P(lm[50]);
+    const rightCheek = P(lm[280]);
+
+    const eyeCenter = mid(mid(leftEyeOuter, leftEyeInner), mid(rightEyeOuter, rightEyeInner));
+    const eyeSpan = dist(leftEyeOuter, rightEyeOuter);
+    const faceWidth = dist(leftTempleRaw, rightTempleRaw);
+    const faceHeight = dist(forehead, chin);
+    const angle = Math.atan2(
+      rightEyeOuter.y - leftEyeOuter.y,
+      rightEyeOuter.x - leftEyeOuter.x
+    );
+
+    // Yaw estimate: horizontal nose displacement, reinforced by landmark depth.
+    const horizontalYaw = Math.max(-1, Math.min(1, (nose.x - eyeCenter.x) / Math.max(1, eyeSpan * 0.36)));
+    const depthYaw = Math.max(-1, Math.min(1, ((lm[234]?.z || 0) - (lm[454]?.z || 0)) * 7.5));
+    const yaw = Math.max(-1, Math.min(1, horizontalYaw * 0.72 + depthYaw * 0.28));
+
+    // Pitch estimate from the vertical proportions around the nose.
+    const upper = dist(forehead, noseBridge);
+    const lower = dist(noseBridge, chin);
+    const pitch = Math.max(-0.65, Math.min(0.65, (upper / Math.max(1, lower) - 0.72) * 1.35));
+
+    // A Loomis cranium is smaller and sits behind the facial mask.
     const center = {
-      x: eyeCenter.x + (chin.x-forehead.x)*0.05,
-      y: eyeCenter.y - faceHeight*0.14
+      x: eyeCenter.x - yaw * faceWidth * 0.075 + (chin.x - forehead.x) * 0.035,
+      y: eyeCenter.y - faceHeight * (0.155 + pitch * 0.025)
     };
+
+    const rx = faceWidth * (0.515 - Math.abs(yaw) * 0.028);
+    const ry = faceHeight * (0.435 + Math.abs(pitch) * 0.025);
+
+    const c = Math.cos(angle), s = Math.sin(angle);
     const crown = {
-      x: center.x + Math.sin(angle)*faceHeight*0.47,
-      y: center.y - Math.cos(angle)*faceHeight*0.47
+      x: center.x + s * ry,
+      y: center.y - c * ry
     };
-    return { center,crown,chin,leftTemple,rightTemple,nose,mouth,eyeCenter,angle };
+
+    // Temples are pulled slightly inward to avoid an oversized skull.
+    const inset = 0.055 + Math.abs(yaw) * 0.025;
+    const leftTemple = {
+      x: leftTempleRaw.x + (rightTempleRaw.x - leftTempleRaw.x) * inset,
+      y: leftTempleRaw.y + (rightTempleRaw.y - leftTempleRaw.y) * inset
+    };
+    const rightTemple = {
+      x: rightTempleRaw.x + (leftTempleRaw.x - rightTempleRaw.x) * inset,
+      y: rightTempleRaw.y + (leftTempleRaw.y - rightTempleRaw.y) * inset
+    };
+
+    return {
+      center, crown, chin, leftTemple, rightTemple, nose, mouth, eyeCenter,
+      leftJaw, rightJaw, leftCheek, rightCheek,
+      angle, yaw, pitch, rx, ry
+    };
   }
 
   function buildManualGuides(points) {
     const [leftEye,rightEye,nose,chin,leftTemple,rightTemple] = points;
     const eyeCenter = mid(leftEye,rightEye);
     const angle = Math.atan2(rightEye.y-leftEye.y,rightEye.x-leftEye.x);
+    const faceWidth = dist(leftTemple,rightTemple);
     const faceHeight = dist(eyeCenter,chin)*1.55;
+    const yaw = Math.max(-1, Math.min(1, (nose.x-eyeCenter.x)/Math.max(1,dist(leftEye,rightEye)*.36)));
     const center = {
-      x: eyeCenter.x + (chin.x-eyeCenter.x)*0.04,
-      y: eyeCenter.y - faceHeight*0.16
+      x: eyeCenter.x-yaw*faceWidth*.07+(chin.x-eyeCenter.x)*.03,
+      y: eyeCenter.y-faceHeight*.15
     };
     const mouth = {
-      x: nose.x + (chin.x-nose.x)*0.48,
-      y: nose.y + (chin.y-nose.y)*0.48
+      x: nose.x+(chin.x-nose.x)*.48,
+      y: nose.y+(chin.y-nose.y)*.48
     };
+    const rx=faceWidth*.515, ry=faceHeight*.435;
     const crown = {
-      x: center.x + Math.sin(angle)*faceHeight*0.48,
-      y: center.y - Math.cos(angle)*faceHeight*0.48
+      x:center.x+Math.sin(angle)*ry,
+      y:center.y-Math.cos(angle)*ry
     };
-    return { center,crown,chin,leftTemple,rightTemple,nose,mouth,eyeCenter,angle };
+    const leftJaw={x:leftTemple.x+(chin.x-leftTemple.x)*.66,y:leftTemple.y+(chin.y-leftTemple.y)*.68};
+    const rightJaw={x:rightTemple.x+(chin.x-rightTemple.x)*.66,y:rightTemple.y+(chin.y-rightTemple.y)*.68};
+    const leftCheek={x:leftTemple.x+(chin.x-leftTemple.x)*.38,y:leftTemple.y+(chin.y-leftTemple.y)*.4};
+    const rightCheek={x:rightTemple.x+(chin.x-rightTemple.x)*.38,y:rightTemple.y+(chin.y-rightTemple.y)*.4};
+    return {center,crown,chin,leftTemple,rightTemple,nose,mouth,eyeCenter,leftJaw,rightJaw,leftCheek,rightCheek,angle,yaw,pitch:0,rx,ry};
   }
 
   function drawImage() {
@@ -239,8 +297,8 @@
   }
 
   function ellipsePoint(g,t) {
-    const rx = Math.max(24,dist(g.leftTemple,g.rightTemple)*0.58);
-    const ry = Math.max(28,dist(g.crown,g.chin)*0.55);
+    const rx = Math.max(24, g.rx || dist(g.leftTemple,g.rightTemple)*0.515);
+    const ry = Math.max(28, g.ry || dist(g.crown,g.chin)*0.49);
     const c=Math.cos(g.angle),s=Math.sin(g.angle),ct=Math.cos(t),st=Math.sin(t);
     return { x:g.center.x+rx*ct*c-ry*st*s, y:g.center.y+rx*ct*s+ry*st*c };
   }
@@ -249,44 +307,99 @@
     const g=state.guides; if(!g) return;
     const opacity=Number(els.opacity.value)/100;
     const width=Number(els.width.value)*(els.canvas.width/1000+0.45);
+    const yaw=g.yaw||0;
     ctx.save();
     ctx.strokeStyle=`rgba(255,232,184,${opacity})`;
     ctx.fillStyle=`rgba(255,232,184,${opacity})`;
     ctx.lineWidth=width; ctx.lineCap="round"; ctx.lineJoin="round";
     ctx.shadowColor="rgba(0,0,0,.42)"; ctx.shadowBlur=3;
 
+    // Cranium.
     ctx.beginPath();
-    for(let i=0;i<=100;i++){const p=ellipsePoint(g,i/100*Math.PI*2); if(i===0)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y);}
+    for(let i=0;i<=120;i++){
+      const p=ellipsePoint(g,i/120*Math.PI*2);
+      if(i===0)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y);
+    }
     ctx.closePath(); ctx.stroke();
 
+    // Brow axis follows the tilt and bends subtly with perspective.
+    const browControl={
+      x:g.eyeCenter.x-yaw*dist(g.leftTemple,g.rightTemple)*.035,
+      y:g.eyeCenter.y+Math.abs(yaw)*dist(g.leftTemple,g.rightTemple)*.018
+    };
     ctx.beginPath();
     ctx.moveTo(g.leftTemple.x,g.leftTemple.y);
-    ctx.quadraticCurveTo(g.eyeCenter.x,g.eyeCenter.y,g.rightTemple.x,g.rightTemple.y);
+    ctx.quadraticCurveTo(browControl.x,browControl.y,g.rightTemple.x,g.rightTemple.y);
     ctx.stroke();
 
+    // Central axis: offset according to yaw rather than splitting the skull mechanically.
     const top=ellipsePoint(g,-Math.PI/2);
+    const upperControl={
+      x:g.center.x+yaw*(g.rx||80)*.18,
+      y:g.center.y+(g.ry||100)*.18
+    };
     ctx.beginPath(); ctx.moveTo(top.x,top.y);
-    ctx.bezierCurveTo(g.center.x,g.center.y,g.nose.x,g.nose.y,g.chin.x,g.chin.y);
+    ctx.bezierCurveTo(upperControl.x,upperControl.y,g.nose.x,g.nose.y,g.chin.x,g.chin.y);
     ctx.stroke();
 
-    const sideSign=(g.nose.x-g.eyeCenter.x)>=0?1:-1;
-    const sideTemple=sideSign>0?g.rightTemple:g.leftTemple;
-    const planeR=dist(g.leftTemple,g.rightTemple)*.155;
+    // Side plane is always placed on the receding side of the head.
+    const recedingRight = yaw < 0;
+    const sideTemple = recedingRight ? g.rightTemple : g.leftTemple;
+    const sideSign = recedingRight ? 1 : -1;
+    const planeR = (g.rx||dist(g.leftTemple,g.rightTemple)*.5) * (0.34-0.07*Math.min(1,Math.abs(yaw)));
     const planeCenter={
-      x:sideTemple.x-Math.cos(g.angle)*sideSign*planeR*.36,
-      y:sideTemple.y-Math.sin(g.angle)*sideSign*planeR*.36
+      x:sideTemple.x-Math.cos(g.angle)*sideSign*planeR*.28,
+      y:sideTemple.y-Math.sin(g.angle)*sideSign*planeR*.28
     };
-    ctx.beginPath(); ctx.ellipse(planeCenter.x,planeCenter.y,planeR*.72,planeR,g.angle,0,Math.PI*2); ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(
+      planeCenter.x,planeCenter.y,
+      planeR*(0.55+Math.abs(yaw)*0.18),planeR,
+      g.angle,0,Math.PI*2
+    );
+    ctx.stroke();
 
-    const jl={x:g.leftTemple.x+(g.chin.x-g.leftTemple.x)*.62,y:g.leftTemple.y+(g.chin.y-g.leftTemple.y)*.68};
-    const jr={x:g.rightTemple.x+(g.chin.x-g.rightTemple.x)*.62,y:g.rightTemple.y+(g.chin.y-g.rightTemple.y)*.68};
-    ctx.beginPath(); ctx.moveTo(g.leftTemple.x,g.leftTemple.y); ctx.lineTo(jl.x,jl.y); ctx.lineTo(g.chin.x,g.chin.y); ctx.lineTo(jr.x,jr.y); ctx.lineTo(g.rightTemple.x,g.rightTemple.y); ctx.stroke();
+    // Perspective-aware jaw: the far side is shorter and tighter.
+    const nearIsRight = yaw > 0;
+    const nearJaw = nearIsRight ? g.rightJaw : g.leftJaw;
+    const farJaw = nearIsRight ? g.leftJaw : g.rightJaw;
+    const nearTemple = nearIsRight ? g.rightTemple : g.leftTemple;
+    const farTemple = nearIsRight ? g.leftTemple : g.rightTemple;
+    const nearCheek = nearIsRight ? g.rightCheek : g.leftCheek;
+    const farCheek = nearIsRight ? g.leftCheek : g.rightCheek;
 
-    const dirX=Math.cos(g.angle),dirY=Math.sin(g.angle),half=dist(g.leftTemple,g.rightTemple)*.43;
+    ctx.beginPath();
+    ctx.moveTo(farTemple.x,farTemple.y);
+    ctx.quadraticCurveTo(
+      farCheek.x+(g.chin.x-farCheek.x)*.12,
+      farCheek.y,
+      farJaw.x+(g.chin.x-farJaw.x)*.08,
+      farJaw.y
+    );
+    ctx.quadraticCurveTo(g.chin.x-(nearIsRight?1:-1)*Math.abs(yaw)*8,g.chin.y-4,g.chin.x,g.chin.y);
+    ctx.quadraticCurveTo(
+      nearJaw.x+(g.chin.x-nearJaw.x)*.05,
+      nearJaw.y,
+      nearCheek.x,
+      nearCheek.y
+    );
+    ctx.quadraticCurveTo(nearTemple.x,nearTemple.y,nearTemple.x,nearTemple.y);
+    ctx.stroke();
+
+    // Nose and mouth cross-contours curve with yaw instead of remaining straight.
+    const dirX=Math.cos(g.angle),dirY=Math.sin(g.angle);
+    const normalX=-dirY,normalY=dirX;
+    const half=dist(g.leftTemple,g.rightTemple)*.40;
     ctx.setLineDash([9*Number(els.width.value),7*Number(els.width.value)]);
     ctx.globalAlpha=.68;
-    for(const [p,m] of [[g.nose,1],[g.mouth,.82]]){
-      ctx.beginPath();ctx.moveTo(p.x-dirX*half*m,p.y-dirY*half*m);ctx.lineTo(p.x+dirX*half*m,p.y+dirY*half*m);ctx.stroke();
+    for(const [p,m,bend] of [[g.nose,1,.055],[g.mouth,.82,.04]]){
+      const a={x:p.x-dirX*half*m,y:p.y-dirY*half*m};
+      const b={x:p.x+dirX*half*m,y:p.y+dirY*half*m};
+      const cp={
+        x:p.x+normalX*half*yaw*bend,
+        y:p.y+normalY*half*yaw*bend
+      };
+      ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.quadraticCurveTo(cp.x,cp.y,b.x,b.y);ctx.stroke();
     }
     ctx.restore();
   }
@@ -360,6 +473,7 @@
     if(state.dragging==="leftTemple"||state.dragging==="rightTemple"){
       g.eyeCenter=mid(g.leftTemple,g.rightTemple);
       g.angle=Math.atan2(g.rightTemple.y-g.leftTemple.y,g.rightTemple.x-g.leftTemple.x);
+      g.rx=dist(g.leftTemple,g.rightTemple)*.515;
     }
     draw();e.preventDefault();
   });
