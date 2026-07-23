@@ -1,1 +1,101 @@
-/* Styles */
+:root {
+  --bg: #171512;
+  --panel: #211e1a;
+  --panel-2: #2b2722;
+  --cream: #f4ecdf;
+  --muted: #bbae9e;
+  --gold: #d8aa63;
+  --gold-2: #f2d096;
+  --line: rgba(255,255,255,.11);
+  --danger: #ef9b8d;
+  --success: #8cd1aa;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--cream); }
+body { background: radial-gradient(circle at 16% 0%, rgba(216,170,99,.1), transparent 34rem), var(--bg); }
+button, input { font: inherit; }
+.topbar {
+  min-height: 78px; padding: 16px clamp(18px,4vw,48px);
+  border-bottom: 1px solid var(--line); display: flex; align-items: center;
+  justify-content: space-between; gap: 16px; background: rgba(23,21,18,.93);
+  backdrop-filter: blur(14px); position: sticky; top: 0; z-index: 5;
+}
+.eyebrow { margin: 0 0 3px; color: var(--gold); font-size: .7rem; letter-spacing: .22em; font-weight: 800; }
+h1 { margin: 0; font-size: clamp(1.35rem,4vw,2rem); line-height: 1; }
+h1 span { color: var(--gold-2); font-size: .55em; vertical-align: top; }
+.badge { border: 1px solid var(--line); border-radius: 999px; padding: 8px 12px; font-size: .78rem; white-space: nowrap; }
+.badge-loading { color: var(--gold-2); }
+.badge-ready { color: var(--success); border-color: rgba(140,209,170,.35); }
+.badge-error { color: var(--danger); border-color: rgba(239,155,141,.35); }
+.app {
+  width: min(1450px,100%); margin: 0 auto; padding: clamp(14px,2.5vw,34px);
+  display: grid; grid-template-columns: minmax(270px,360px) minmax(0,1fr);
+  gap: clamp(16px,2.5vw,32px);
+}
+.panel { background: rgba(33,30,26,.95); border: 1px solid var(--line); border-radius: 22px; padding: 20px; box-shadow: 0 18px 50px rgba(0,0,0,.22); }
+.intro { display: flex; gap: 12px; align-items: flex-start; }
+.step-number { width: 30px; height: 30px; flex: 0 0 30px; border-radius: 50%; display: grid; place-items: center; background: var(--gold); color: #1b1711; font-weight: 900; }
+h2 { margin: 0 0 6px; font-size: 1.05rem; }
+p { color: var(--muted); line-height: 1.45; }
+.intro p { margin: 0; font-size: .88rem; }
+#photoInput { position: absolute; opacity: 0; pointer-events: none; }
+.file-button {
+  margin-top: 18px; min-height: 56px; padding: 13px 16px; border-radius: 15px;
+  display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;
+  background: linear-gradient(135deg,var(--gold-2),var(--gold)); color: #1c1710;
+  box-shadow: 0 10px 24px rgba(216,170,99,.18);
+}
+.status { margin-top: 14px; min-height: 74px; padding: 12px 13px; border: 1px solid var(--line); border-radius: 13px; background: rgba(0,0,0,.14); color: var(--muted); font-size: .84rem; line-height: 1.45; }
+.status.success { border-color: rgba(140,209,170,.35); color: #b5e8ca; }
+.status.error { border-color: rgba(239,155,141,.35); color: #ffc0b5; }
+.button-grid { margin-top: 14px; display: grid; gap: 9px; }
+button { border: 1px solid var(--line); border-radius: 12px; min-height: 44px; padding: 10px 14px; color: var(--cream); background: var(--panel-2); cursor: pointer; }
+button.primary { background: var(--cream); color: #1c1915; font-weight: 800; }
+button:disabled { opacity: .38; cursor: not-allowed; }
+details { margin-top: 15px; border-top: 1px solid var(--line); padding-top: 14px; }
+summary { cursor: pointer; font-weight: 750; }
+.settings { display: grid; gap: 14px; margin-top: 14px; }
+.settings label:not(.check) { display: grid; gap: 7px; }
+.settings label > span { color: var(--muted); font-size: .84rem; }
+input[type="range"] { width: 100%; accent-color: var(--gold); }
+.check { display: flex; gap: 9px; align-items: center; }
+.check input { accent-color: var(--gold); width: 18px; height: 18px; }
+.help { margin-top: 17px; padding: 13px; border-radius: 13px; background: rgba(216,170,99,.075); border: 1px solid rgba(216,170,99,.14); }
+.help strong { color: var(--gold-2); font-size: .85rem; }
+.help p { margin: 5px 0 0; font-size: .8rem; }
+.workspace { min-width: 0; }
+.stage {
+  position: relative; width: 100%; min-height: 68vh; border: 1px solid var(--line);
+  border-radius: 24px; overflow: hidden; display: grid; place-items: center; touch-action: none;
+  background:
+    linear-gradient(45deg,#201d19 25%,transparent 25%),
+    linear-gradient(-45deg,#201d19 25%,transparent 25%),
+    linear-gradient(45deg,transparent 75%,#201d19 75%),
+    linear-gradient(-45deg,transparent 75%,#201d19 75%),#1c1916;
+  background-size: 28px 28px; background-position: 0 0,0 14px,14px -14px,-14px 0;
+}
+canvas { display: block; max-width: 100%; max-height: 78vh; }
+.stage.empty canvas { display: none; }
+.empty-state { text-align: center; padding: 24px; max-width: 420px; }
+.empty-icon { width: 74px; height: 74px; margin: 0 auto 16px; border: 2px solid var(--gold); border-radius: 50%; display: grid; place-items: center; color: var(--gold-2); font-size: 2rem; }
+.empty-state h2 { font-size: 1.3rem; }
+.empty-state p { margin-bottom: 0; }
+.loader { position: absolute; inset: 0; background: rgba(15,13,11,.68); backdrop-filter: blur(4px); display: grid; place-content: center; justify-items: center; z-index: 3; }
+.hidden { display: none !important; }
+.spinner { width: 46px; height: 46px; border: 4px solid rgba(255,255,255,.15); border-top-color: var(--gold); border-radius: 50%; animation: spin .8s linear infinite; }
+.loader p { color: var(--cream); }
+@keyframes spin { to { transform: rotate(360deg); } }
+.privacy { text-align: center; font-size: .73rem; margin: 9px 0 0; }
+dialog { width: min(720px,92vw); border: 1px solid var(--line); border-radius: 18px; padding: 18px; background: #1d1a17; color: var(--cream); box-shadow: 0 24px 90px rgba(0,0,0,.55); }
+dialog::backdrop { background: rgba(0,0,0,.7); backdrop-filter: blur(3px); }
+.dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.dialog-head button { min-height: 38px; width: 38px; padding: 0; font-size: 1.5rem; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 52vh; overflow: auto; padding: 13px; border-radius: 12px; background: #12100e; color: #d8d0c5; font-size: .76rem; line-height: 1.45; }
+@media (max-width: 850px) {
+  .topbar { position: static; }
+  .app { grid-template-columns: 1fr; }
+  .stage { min-height: 52vh; border-radius: 18px; }
+  canvas { max-height: 70vh; }
+}
