@@ -39,3 +39,9 @@ Cette Alpha charge MediaPipe et son modèle depuis Internet. Elle fonctionne don
 ## Confidentialité
 
 La photo est analysée localement dans le navigateur. Elle n’est pas envoyée vers un serveur Loomi.
+
+
+## Correctif import photo
+
+Cette version charge d’abord l’interface et l’import d’image, puis charge l’IA séparément.
+Ainsi, une erreur ou un ralentissement de MediaPipe ne bloque plus l’affichage de la photo.
