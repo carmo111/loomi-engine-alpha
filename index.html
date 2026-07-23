@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="theme-color" content="#f4efe6">
+  <meta name="description" content="Prototype mobile Loomi pour construire une tête inspirée de la méthode Loomis à partir d'une photo.">
+  <title>Loomi Engine Alpha</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div class="brand">LOOMI</div>
+      <div class="version">Engine Alpha</div>
+    </header>
+
+    <section class="stage" id="stage" aria-label="Zone de construction Loomi">
+      <canvas id="canvas" width="900" height="1200"></canvas>
+
+      <div class="empty" id="empty">
+        <h1>Construis la tête à partir d’une photo</h1>
+        <p>Charge une photo, place six repères, puis Loomi génère une construction inclinée et ajustable.</p>
+        <label class="file-label" for="photoInput">📷 Choisir une photo</label>
+      </div>
+
+      <div class="floating hidden" id="floating">
+        <div class="instruction" id="instruction">Touchez le premier repère.</div>
+      </div>
+    </section>
+
+    <div class="step-dots hidden" id="stepDots" aria-label="Progression de l’analyse"></div>
+
+    <section class="panel">
+      <div class="badge" id="statusBadge">Aucune photo chargée</div>
+      <p class="mode-title" id="modeTitle">Prototype guidé</p>
+
+      <div class="actions">
+        <label class="file-label secondary" for="photoInput">Changer la photo</label>
+        <button id="startBtn" class="accent" type="button" disabled>✨ Placer 6 repères</button>
+        <button id="undoPointBtn" class="secondary hidden" type="button">↶ Annuler le point</button>
+        <button id="cancelBtn" class="danger hidden" type="button">✕ Annuler l’analyse</button>
+        <button id="editBtn" class="secondary hidden" type="button">✋ Ajuster les repères</button>
+        <button id="saveBtn" class="wide hidden" type="button">💾 Enregistrer l’image</button>
+      </div>
+
+      <div class="small-actions hidden" id="editActions">
+        <button class="secondary" id="resetBtn" type="button">Réinitialiser</button>
+        <button class="secondary" id="hideHandlesBtn" type="button">Masquer les poignées</button>
+      </div>
+
+      <div class="settings hidden" id="settings">
+        <label class="range">Épaisseur des traits
+          <input id="widthRange" type="range" min="1" max="8" value="3" step="1">
+        </label>
+        <label class="range">Transparence des traits
+          <input id="opacityRange" type="range" min="20" max="100" value="92" step="1">
+        </label>
+      </div>
+
+      <p class="notice" id="notice">
+        Alpha guidée : l’utilisateur pose six points, puis le moteur calcule l’inclinaison, le crâne, l’axe, le plan latéral et la mâchoire.
+      </p>
+    </section>
+
+    <input id="photoInput" type="file" accept="image/*">
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
