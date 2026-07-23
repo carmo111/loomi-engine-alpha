@@ -1,29 +1,37 @@
-# Loomi Engine V2
+# Loomi Engine V3
 
-Prototype web mobile pour construire automatiquement une tête avec la méthode Loomi.
+Version robuste compatible GitHub Pages.
 
-## Fonctions
+## Nouveautés
 
-- Import immédiat d’une photo
-- Détection automatique du visage avec MediaPipe Face Landmarker
+- Import de photo indépendant du moteur IA
+- MediaPipe FaceMesh chargé avec un script classique, plus compatible avec Safari
+- Détection automatique de 468 repères
 - Construction Loomi automatique
-- Points IA optionnels
-- Poignées de correction manuelle
-- Réglage de l’opacité et de l’épaisseur
+- Mode manuel à 6 points toujours disponible
+- Poignées de correction
 - Export PNG
-- Fonctionnement sur GitHub Pages
+- Diagnostic technique intégré
+- Installation possible comme application web
+- Numéros de version dans les liens CSS et JavaScript pour éviter l'ancien cache
 
-## Installation sur GitHub
+## Mise à jour GitHub
 
-1. Ouvre le dépôt `loomi-engine-alpha`.
-2. Supprime ou remplace les anciens fichiers `index.html`, `styles.css` et `app.js`.
-3. Téléverse les trois nouveaux fichiers situés à la racine de cette archive.
-4. Valide avec **Commit changes**.
-5. Attends environ 1 à 3 minutes.
-6. Ouvre le site puis recharge la page.
+Remplace les anciens fichiers par tous les fichiers de cette archive :
 
-Le fichier `index.html` utilise `?v=2.0.0` pour éviter que le navigateur conserve les anciens fichiers CSS et JavaScript en cache.
+- index.html
+- styles.css
+- app.js
+- manifest.webmanifest
+- sw.js
+- icon.svg
+- README.md
 
-## Connexion Internet
+Attends ensuite 1 à 3 minutes, puis ouvre le site dans une fenêtre privée pour le premier test.
 
-La photo reste dans le navigateur. Une connexion Internet est toutefois nécessaire pour charger la bibliothèque MediaPipe, son moteur WebAssembly et le modèle de détection.
+## Test conseillé
+
+1. Vérifie que le badge indique « Moteur prêt ».
+2. Importe une photo.
+3. Attends l'apparition de la construction.
+4. En cas d'échec, clique sur « Diagnostic technique » et copie le contenu.

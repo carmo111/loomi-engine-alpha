@@ -2,523 +2,443 @@
   "use strict";
 
   const $ = (id) => document.getElementById(id);
-  const input = $("photoInput");
-  const canvas = $("canvas");
-  const ctx = canvas.getContext("2d");
-  const stage = $("stage");
-  const emptyState = $("emptyState");
-  const statusEl = $("status");
-  const loader = $("loader");
-  const badge = $("aiBadge");
-  const detectButton = $("detectButton");
-  const resetButton = $("resetButton");
-  const exportButton = $("exportButton");
-  const opacityRange = $("opacityRange");
-  const widthRange = $("widthRange");
-  const showLandmarks = $("showLandmarks");
-  const showHandles = $("showHandles");
+  const els = {
+    input: $("photoInput"), canvas: $("canvas"), stage: $("stage"), empty: $("emptyState"),
+    status: $("status"), loader: $("loader"), loaderText: $("loaderText"), badge: $("aiBadge"),
+    detect: $("detectButton"), manual: $("manualButton"), reset: $("resetButton"), export: $("exportButton"),
+    diagnostic: $("diagnosticButton"), dialog: $("diagnosticDialog"), closeDiagnostic: $("closeDiagnostic"),
+    diagnosticOutput: $("diagnosticOutput"), copyDiagnostic: $("copyDiagnostic"),
+    opacity: $("opacityRange"), width: $("widthRange"), landmarks: $("showLandmarks"), handles: $("showHandles")
+  };
+  const ctx = els.canvas.getContext("2d");
 
   const state = {
-    image: null,
-    fileName: "loomi-portrait",
-    faceLandmarker: null,
-    aiReady: false,
-    aiLoading: false,
-    landmarks: null,
-    originalGuides: null,
-    guides: null,
-    dragging: null,
-    pointerId: null
+    image: null, filename: "loomi-portrait", faceMesh: null, aiReady: false, aiLoading: false,
+    aiError: null, faceLandmarks: null, guides: null, originalGuides: null,
+    dragging: null, pointerId: null, manualMode: false, manualPoints: [],
+    logs: [], lastDetectionAt: null
   };
 
-  const MEDIAPIPE_VERSION = "0.10.22";
-  const MODULE_URL = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MEDIAPIPE_VERSION}/+esm`;
-  const WASM_URL = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MEDIAPIPE_VERSION}/wasm`;
-  const MODEL_URL = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task";
+  const MP_BASE = "https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/";
+
+  function log(message, data) {
+    const line = `[${new Date().toLocaleTimeString()}] ${message}${data ? ` | ${String(data)}` : ""}`;
+    state.logs.push(line);
+    if (state.logs.length > 80) state.logs.shift();
+    console.log("[Loomi]", message, data ?? "");
+  }
 
   function setStatus(message, type = "") {
-    statusEl.textContent = message;
-    statusEl.className = `status ${type}`.trim();
+    els.status.textContent = message;
+    els.status.className = `status ${type}`.trim();
   }
 
-  function setBadge(text, type) {
-    badge.textContent = text;
-    badge.className = `badge badge-${type}`;
+  function setBadge(message, type) {
+    els.badge.textContent = message;
+    els.badge.className = `badge badge-${type}`;
   }
 
-  async function loadAI() {
+  function waitForFaceMeshGlobal(timeoutMs = 12000) {
+    return new Promise((resolve, reject) => {
+      const started = Date.now();
+      const timer = setInterval(() => {
+        if (window.FaceMesh) {
+          clearInterval(timer);
+          resolve(window.FaceMesh);
+        } else if (Date.now() - started > timeoutMs) {
+          clearInterval(timer);
+          reject(new Error("Le script MediaPipe FaceMesh n'est pas disponible dans window.FaceMesh."));
+        }
+      }, 100);
+    });
+  }
+
+  async function initAI() {
     if (state.aiReady || state.aiLoading) return;
     state.aiLoading = true;
-    setBadge("Chargement IA…", "loading");
+    setBadge("Chargement du moteur…", "loading");
+    log("Initialisation du moteur FaceMesh");
 
     try {
-      const visionModule = await import(MODULE_URL);
-      const { FaceLandmarker, FilesetResolver } = visionModule;
-      const vision = await FilesetResolver.forVisionTasks(WASM_URL);
-
-      state.faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
-        baseOptions: {
-          modelAssetPath: MODEL_URL,
-          delegate: "CPU"
-        },
-        runningMode: "IMAGE",
-        numFaces: 1,
-        minFaceDetectionConfidence: 0.45,
-        minFacePresenceConfidence: 0.45,
-        minTrackingConfidence: 0.45,
-        outputFacialTransformationMatrixes: true
+      const FaceMeshClass = await waitForFaceMeshGlobal();
+      const mesh = new FaceMeshClass({
+        locateFile: (file) => `${MP_BASE}${file}`
       });
 
+      mesh.setOptions({
+        maxNumFaces: 1,
+        refineLandmarks: true,
+        minDetectionConfidence: 0.45,
+        minTrackingConfidence: 0.45,
+        selfieMode: false
+      });
+
+      mesh.onResults((results) => {
+        hideLoader();
+        els.detect.disabled = false;
+        state.lastDetectionAt = new Date().toISOString();
+
+        if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
+          state.faceLandmarks = null;
+          state.guides = null;
+          setStatus("Aucun visage détecté. Essaie une photo plus nette, plus lumineuse ou davantage cadrée sur le visage.", "error");
+          log("Détection terminée sans visage");
+          draw();
+          return;
+        }
+
+        state.faceLandmarks = results.multiFaceLandmarks[0];
+        state.guides = buildGuides(state.faceLandmarks);
+        state.originalGuides = JSON.parse(JSON.stringify(state.guides));
+        state.manualMode = false;
+        setStatus("Visage détecté. La construction Loomi est prête et peut être corrigée avec les poignées.", "success");
+        log(`Visage détecté avec ${state.faceLandmarks.length} repères`);
+        draw();
+      });
+
+      state.faceMesh = mesh;
       state.aiReady = true;
-      setBadge("IA prête", "ready");
-      if (state.image) {
-        setStatus("Photo chargée. L’IA est prête : détection automatique en cours…");
-        await detectFace();
-      } else {
-        setStatus("IA prête. Choisis maintenant une photo.", "success");
-      }
+      state.aiError = null;
+      setBadge("Moteur prêt", "ready");
+      setStatus(state.image ? "Moteur prêt. Détection automatique en cours…" : "Moteur prêt. Choisis une photo.", "success");
+      log("Moteur FaceMesh prêt");
+
+      if (state.image) await detectFace();
     } catch (error) {
-      console.error("Loomi AI loading error:", error);
-      setBadge("IA indisponible", "error");
-      setStatus(
-        "La photo peut toujours s’afficher, mais le module IA n’a pas pu se charger. Vérifie la connexion Internet, puis recharge la page.",
-        "error"
-      );
+      state.aiError = error;
+      setBadge("Moteur indisponible", "error");
+      setStatus("Le moteur automatique n'a pas pu démarrer. La photo et le mode manuel restent disponibles. Ouvre le diagnostic pour voir la cause.", "error");
+      log("Échec du chargement IA", error?.stack || error?.message || error);
     } finally {
       state.aiLoading = false;
     }
   }
 
-  function fitCanvasToImage(img) {
+  function showLoader(text) {
+    els.loaderText.textContent = text;
+    els.loader.classList.remove("hidden");
+  }
+  function hideLoader() { els.loader.classList.add("hidden"); }
+
+  function fitCanvas(img) {
     const maxSide = 1800;
     const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
-    canvas.width = Math.round(img.naturalWidth * scale);
-    canvas.height = Math.round(img.naturalHeight * scale);
+    els.canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+    els.canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
   }
 
-  function loadPhoto(file) {
+  function importPhoto(file) {
     if (!file || !file.type.startsWith("image/")) {
-      setStatus("Ce fichier n’est pas une image compatible.", "error");
+      setStatus("Choisis un fichier image compatible.", "error");
       return;
     }
-
-    state.fileName = file.name.replace(/\.[^.]+$/, "") || "loomi-portrait";
+    state.filename = file.name.replace(/\.[^.]+$/, "") || "loomi-portrait";
     const reader = new FileReader();
 
-    reader.onerror = () => setStatus("Impossible de lire cette photo.", "error");
+    reader.onerror = () => setStatus("Impossible de lire ce fichier image.", "error");
     reader.onload = () => {
       const img = new Image();
       img.onload = async () => {
         state.image = img;
-        state.landmarks = null;
+        state.faceLandmarks = null;
         state.guides = null;
         state.originalGuides = null;
-        fitCanvasToImage(img);
-        stage.classList.remove("empty");
-        emptyState.classList.add("hidden");
-        detectButton.disabled = false;
-        resetButton.disabled = false;
-        exportButton.disabled = false;
+        state.manualMode = false;
+        state.manualPoints = [];
+        fitCanvas(img);
+        els.stage.classList.remove("empty");
+        els.empty.classList.add("hidden");
+        els.detect.disabled = false;
+        els.manual.disabled = false;
+        els.reset.disabled = false;
+        els.export.disabled = false;
         draw();
-        setStatus("Photo chargée correctement. Préparation de la détection…", "success");
+        setStatus("Photo chargée correctement.", "success");
+        log(`Photo chargée ${img.naturalWidth}×${img.naturalHeight}`);
 
-        if (state.aiReady) {
-          await detectFace();
-        } else {
-          loadAI();
-        }
+        if (state.aiReady) await detectFace();
+        else initAI();
       };
-      img.onerror = () => setStatus("Le navigateur n’arrive pas à décoder cette image.", "error");
+      img.onerror = () => setStatus("Le navigateur ne parvient pas à décoder cette image.", "error");
       img.src = reader.result;
     };
     reader.readAsDataURL(file);
   }
 
-  function px(lm) {
-    return { x: lm.x * canvas.width, y: lm.y * canvas.height, z: lm.z || 0 };
-  }
-
-  function midpoint(a, b) {
-    return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-  }
-
-  function distance(a, b) {
-    return Math.hypot(a.x - b.x, a.y - b.y);
-  }
-
-  function pointAt(center, angle, rx, ry, t) {
-    const c = Math.cos(angle), s = Math.sin(angle);
-    const ct = Math.cos(t), st = Math.sin(t);
-    return {
-      x: center.x + rx * ct * c - ry * st * s,
-      y: center.y + rx * ct * s + ry * st * c
-    };
-  }
-
-  function buildGuides(landmarks) {
-    // Stable MediaPipe landmark anchors.
-    const leftEyeOuter = px(landmarks[33]);
-    const rightEyeOuter = px(landmarks[263]);
-    const leftTempleFace = px(landmarks[234]);
-    const rightTempleFace = px(landmarks[454]);
-    const forehead = px(landmarks[10]);
-    const chin = px(landmarks[152]);
-    const nose = px(landmarks[1]);
-    const mouth = px(landmarks[13]);
-    const eyeCenter = midpoint(leftEyeOuter, rightEyeOuter);
-
-    const angle = Math.atan2(
-      rightEyeOuter.y - leftEyeOuter.y,
-      rightEyeOuter.x - leftEyeOuter.x
-    );
-
-    const faceWidth = distance(leftTempleFace, rightTempleFace);
-    const faceHeight = distance(forehead, chin);
-    const center = {
-      x: eyeCenter.x + (chin.x - forehead.x) * 0.05,
-      y: eyeCenter.y - faceHeight * 0.14
-    };
-
-    const rx = faceWidth * 0.57;
-    const ry = Math.max(faceHeight * 0.48, rx * 1.02);
-    const crown = pointAt(center, angle, rx, ry, -Math.PI / 2);
-
-    return {
-      center,
-      crown,
-      chin: { ...chin },
-      leftTemple: { ...leftTempleFace },
-      rightTemple: { ...rightTempleFace },
-      nose: { ...nose },
-      mouth: { ...mouth },
-      eyeCenter,
-      angle,
-      rx,
-      ry
-    };
-  }
-
   async function detectFace() {
     if (!state.image) return;
-    if (!state.aiReady || !state.faceLandmarker) {
-      setStatus("L’IA n’est pas encore prête. Attends quelques secondes puis appuie à nouveau.", "error");
-      loadAI();
+    if (!state.aiReady || !state.faceMesh) {
+      setStatus("Le moteur automatique n'est pas prêt. Tu peux utiliser le mode manuel ou ouvrir le diagnostic.", "error");
+      initAI();
       return;
     }
 
-    loader.classList.remove("hidden");
-    detectButton.disabled = true;
-    setStatus("Analyse du visage en cours…");
-
     try {
-      // Let the loader paint before synchronous inference.
-      await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 20)));
-      const result = state.faceLandmarker.detect(state.image);
-
-      if (!result.faceLandmarks || result.faceLandmarks.length === 0) {
-        state.landmarks = null;
-        state.guides = null;
-        setStatus(
-          "Aucun visage détecté. Essaie une photo plus nette, moins sombre et avec le visage davantage visible.",
-          "error"
-        );
-        draw();
-        return;
-      }
-
-      state.landmarks = result.faceLandmarks[0];
-      state.guides = buildGuides(state.landmarks);
-      state.originalGuides = JSON.parse(JSON.stringify(state.guides));
-      setStatus(
-        "Visage détecté et construction Loomi créée. Tu peux déplacer les poignées pour la corriger.",
-        "success"
-      );
-      draw();
+      state.manualMode = false;
+      state.manualPoints = [];
+      els.detect.disabled = true;
+      showLoader("Analyse du visage…");
+      log("Envoi de l'image au moteur FaceMesh");
+      await state.faceMesh.send({ image: state.image });
     } catch (error) {
-      console.error("Loomi detection error:", error);
-      setStatus(
-        "La photo est bien chargée, mais l’analyse IA a rencontré une erreur. Recharge la page et réessaie.",
-        "error"
-      );
-    } finally {
-      loader.classList.add("hidden");
-      detectButton.disabled = false;
+      hideLoader();
+      els.detect.disabled = false;
+      state.aiError = error;
+      setStatus("L'analyse a rencontré une erreur. Le mode manuel reste disponible.", "error");
+      log("Erreur pendant la détection", error?.stack || error?.message || error);
     }
+  }
+
+  const P = (lm) => ({ x: lm.x * els.canvas.width, y: lm.y * els.canvas.height, z: lm.z || 0 });
+  const mid = (a,b) => ({ x:(a.x+b.x)/2, y:(a.y+b.y)/2 });
+  const dist = (a,b) => Math.hypot(a.x-b.x,a.y-b.y);
+
+  function buildGuides(lm) {
+    const leftEye = P(lm[33]), rightEye = P(lm[263]);
+    const leftTemple = P(lm[234]), rightTemple = P(lm[454]);
+    const forehead = P(lm[10]), chin = P(lm[152]), nose = P(lm[1]), mouth = P(lm[13]);
+    const eyeCenter = mid(leftEye, rightEye);
+    const angle = Math.atan2(rightEye.y-leftEye.y, rightEye.x-leftEye.x);
+    const faceWidth = dist(leftTemple,rightTemple);
+    const faceHeight = dist(forehead,chin);
+    const center = {
+      x: eyeCenter.x + (chin.x-forehead.x)*0.05,
+      y: eyeCenter.y - faceHeight*0.14
+    };
+    const crown = {
+      x: center.x + Math.sin(angle)*faceHeight*0.47,
+      y: center.y - Math.cos(angle)*faceHeight*0.47
+    };
+    return { center,crown,chin,leftTemple,rightTemple,nose,mouth,eyeCenter,angle };
+  }
+
+  function buildManualGuides(points) {
+    const [leftEye,rightEye,nose,chin,leftTemple,rightTemple] = points;
+    const eyeCenter = mid(leftEye,rightEye);
+    const angle = Math.atan2(rightEye.y-leftEye.y,rightEye.x-leftEye.x);
+    const faceHeight = dist(eyeCenter,chin)*1.55;
+    const center = {
+      x: eyeCenter.x + (chin.x-eyeCenter.x)*0.04,
+      y: eyeCenter.y - faceHeight*0.16
+    };
+    const mouth = {
+      x: nose.x + (chin.x-nose.x)*0.48,
+      y: nose.y + (chin.y-nose.y)*0.48
+    };
+    const crown = {
+      x: center.x + Math.sin(angle)*faceHeight*0.48,
+      y: center.y - Math.cos(angle)*faceHeight*0.48
+    };
+    return { center,crown,chin,leftTemple,rightTemple,nose,mouth,eyeCenter,angle };
   }
 
   function drawImage() {
     if (!state.image) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(state.image, 0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0,0,els.canvas.width,els.canvas.height);
+    ctx.drawImage(state.image,0,0,els.canvas.width,els.canvas.height);
   }
 
-  function ellipsePoint(g, t) {
-    const center = g.center;
-    const rx = Math.max(20, distance(g.leftTemple, g.rightTemple) * 0.57);
-    const faceH = distance(g.crown, g.chin);
-    const ry = Math.max(24, faceH * 0.53);
-    return pointAt(center, g.angle, rx, ry, t);
-  }
-
-  function traceEllipse(g) {
-    ctx.beginPath();
-    for (let i = 0; i <= 96; i++) {
-      const t = (i / 96) * Math.PI * 2;
-      const p = ellipsePoint(g, t);
-      if (i === 0) ctx.moveTo(p.x, p.y);
-      else ctx.lineTo(p.x, p.y);
-    }
-    ctx.closePath();
-    ctx.stroke();
+  function ellipsePoint(g,t) {
+    const rx = Math.max(24,dist(g.leftTemple,g.rightTemple)*0.58);
+    const ry = Math.max(28,dist(g.crown,g.chin)*0.55);
+    const c=Math.cos(g.angle),s=Math.sin(g.angle),ct=Math.cos(t),st=Math.sin(t);
+    return { x:g.center.x+rx*ct*c-ry*st*s, y:g.center.y+rx*ct*s+ry*st*c };
   }
 
   function drawLoomi() {
-    const g = state.guides;
-    if (!g) return;
-
-    const opacity = Number(opacityRange.value) / 100;
-    const width = Number(widthRange.value);
+    const g=state.guides; if(!g) return;
+    const opacity=Number(els.opacity.value)/100;
+    const width=Number(els.width.value)*(els.canvas.width/1000+0.45);
     ctx.save();
-    ctx.strokeStyle = `rgba(255, 232, 184, ${opacity})`;
-    ctx.fillStyle = `rgba(255, 232, 184, ${opacity})`;
-    ctx.lineWidth = width * (canvas.width / 1000 + 0.45);
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.shadowColor = "rgba(0,0,0,.35)";
-    ctx.shadowBlur = 3;
+    ctx.strokeStyle=`rgba(255,232,184,${opacity})`;
+    ctx.fillStyle=`rgba(255,232,184,${opacity})`;
+    ctx.lineWidth=width; ctx.lineCap="round"; ctx.lineJoin="round";
+    ctx.shadowColor="rgba(0,0,0,.42)"; ctx.shadowBlur=3;
 
-    // Main cranium.
-    traceEllipse(g);
-
-    // Brow/eye axis.
     ctx.beginPath();
-    ctx.moveTo(g.leftTemple.x, g.leftTemple.y);
-    ctx.quadraticCurveTo(g.eyeCenter.x, g.eyeCenter.y, g.rightTemple.x, g.rightTemple.y);
+    for(let i=0;i<=100;i++){const p=ellipsePoint(g,i/100*Math.PI*2); if(i===0)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y);}
+    ctx.closePath(); ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(g.leftTemple.x,g.leftTemple.y);
+    ctx.quadraticCurveTo(g.eyeCenter.x,g.eyeCenter.y,g.rightTemple.x,g.rightTemple.y);
     ctx.stroke();
 
-    // Central facial axis.
-    const top = ellipsePoint(g, -Math.PI / 2);
-    ctx.beginPath();
-    ctx.moveTo(top.x, top.y);
-    ctx.bezierCurveTo(
-      g.center.x, g.center.y,
-      g.nose.x, g.nose.y,
-      g.chin.x, g.chin.y
-    );
+    const top=ellipsePoint(g,-Math.PI/2);
+    ctx.beginPath(); ctx.moveTo(top.x,top.y);
+    ctx.bezierCurveTo(g.center.x,g.center.y,g.nose.x,g.nose.y,g.chin.x,g.chin.y);
     ctx.stroke();
 
-    // Side plane, placed on the side toward which the nose is shifted.
-    const eyeMid = g.eyeCenter;
-    const sideSign = (g.nose.x - eyeMid.x) >= 0 ? 1 : -1;
-    const sideTemple = sideSign > 0 ? g.rightTemple : g.leftTemple;
-    const planeCenter = {
-      x: sideTemple.x - Math.cos(g.angle) * sideSign * distance(g.leftTemple, g.rightTemple) * .055,
-      y: sideTemple.y - Math.sin(g.angle) * sideSign * distance(g.leftTemple, g.rightTemple) * .055
+    const sideSign=(g.nose.x-g.eyeCenter.x)>=0?1:-1;
+    const sideTemple=sideSign>0?g.rightTemple:g.leftTemple;
+    const planeR=dist(g.leftTemple,g.rightTemple)*.155;
+    const planeCenter={
+      x:sideTemple.x-Math.cos(g.angle)*sideSign*planeR*.36,
+      y:sideTemple.y-Math.sin(g.angle)*sideSign*planeR*.36
     };
-    const planeR = distance(g.leftTemple, g.rightTemple) * .155;
-    ctx.beginPath();
-    ctx.ellipse(planeCenter.x, planeCenter.y, planeR * .7, planeR, g.angle, 0, Math.PI * 2);
-    ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(planeCenter.x,planeCenter.y,planeR*.72,planeR,g.angle,0,Math.PI*2); ctx.stroke();
 
-    // Jaw construction.
-    const jawLeft = {
-      x: g.leftTemple.x + (g.chin.x - g.leftTemple.x) * .62,
-      y: g.leftTemple.y + (g.chin.y - g.leftTemple.y) * .68
-    };
-    const jawRight = {
-      x: g.rightTemple.x + (g.chin.x - g.rightTemple.x) * .62,
-      y: g.rightTemple.y + (g.chin.y - g.rightTemple.y) * .68
-    };
-    ctx.beginPath();
-    ctx.moveTo(g.leftTemple.x, g.leftTemple.y);
-    ctx.lineTo(jawLeft.x, jawLeft.y);
-    ctx.lineTo(g.chin.x, g.chin.y);
-    ctx.lineTo(jawRight.x, jawRight.y);
-    ctx.lineTo(g.rightTemple.x, g.rightTemple.y);
-    ctx.stroke();
+    const jl={x:g.leftTemple.x+(g.chin.x-g.leftTemple.x)*.62,y:g.leftTemple.y+(g.chin.y-g.leftTemple.y)*.68};
+    const jr={x:g.rightTemple.x+(g.chin.x-g.rightTemple.x)*.62,y:g.rightTemple.y+(g.chin.y-g.rightTemple.y)*.68};
+    ctx.beginPath(); ctx.moveTo(g.leftTemple.x,g.leftTemple.y); ctx.lineTo(jl.x,jl.y); ctx.lineTo(g.chin.x,g.chin.y); ctx.lineTo(jr.x,jr.y); ctx.lineTo(g.rightTemple.x,g.rightTemple.y); ctx.stroke();
 
-    // Nose and mouth guide.
-    const halfW = distance(g.leftTemple, g.rightTemple) * .43;
-    const dirX = Math.cos(g.angle), dirY = Math.sin(g.angle);
-    ctx.setLineDash([9 * width, 7 * width]);
-    ctx.globalAlpha = .68;
-    ctx.beginPath();
-    ctx.moveTo(g.nose.x - dirX * halfW, g.nose.y - dirY * halfW);
-    ctx.lineTo(g.nose.x + dirX * halfW, g.nose.y + dirY * halfW);
-    ctx.moveTo(g.mouth.x - dirX * halfW * .82, g.mouth.y - dirY * halfW * .82);
-    ctx.lineTo(g.mouth.x + dirX * halfW * .82, g.mouth.y + dirY * halfW * .82);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.globalAlpha = 1;
-
-    ctx.restore();
-  }
-
-  function drawPoints() {
-    if (!showLandmarks.checked || !state.landmarks) return;
-    ctx.save();
-    ctx.fillStyle = "rgba(94, 226, 255, .72)";
-    const r = Math.max(1.2, canvas.width / 850);
-    for (const lm of state.landmarks) {
-      ctx.beginPath();
-      ctx.arc(lm.x * canvas.width, lm.y * canvas.height, r, 0, Math.PI * 2);
-      ctx.fill();
+    const dirX=Math.cos(g.angle),dirY=Math.sin(g.angle),half=dist(g.leftTemple,g.rightTemple)*.43;
+    ctx.setLineDash([9*Number(els.width.value),7*Number(els.width.value)]);
+    ctx.globalAlpha=.68;
+    for(const [p,m] of [[g.nose,1],[g.mouth,.82]]){
+      ctx.beginPath();ctx.moveTo(p.x-dirX*half*m,p.y-dirY*half*m);ctx.lineTo(p.x+dirX*half*m,p.y+dirY*half*m);ctx.stroke();
     }
     ctx.restore();
   }
 
-  function handleRadius() {
-    return Math.max(9, canvas.width / 90);
-  }
-
-  function drawHandles() {
-    if (!showHandles.checked || !state.guides) return;
-    const entries = [
-      ["crown", state.guides.crown],
-      ["center", state.guides.center],
-      ["leftTemple", state.guides.leftTemple],
-      ["rightTemple", state.guides.rightTemple],
-      ["chin", state.guides.chin],
-      ["nose", state.guides.nose],
-      ["mouth", state.guides.mouth]
-    ];
-
-    const r = handleRadius();
-    ctx.save();
-    ctx.lineWidth = Math.max(2, canvas.width / 500);
-    for (const [, p] of entries) {
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(24, 20, 15, .78)";
-      ctx.fill();
-      ctx.strokeStyle = "#f2cf92";
-      ctx.stroke();
-    }
+  function drawLandmarks() {
+    if(!els.landmarks.checked||!state.faceLandmarks)return;
+    ctx.save();ctx.fillStyle="rgba(93,226,255,.72)";
+    const r=Math.max(1.2,els.canvas.width/850);
+    for(const lm of state.faceLandmarks){ctx.beginPath();ctx.arc(lm.x*els.canvas.width,lm.y*els.canvas.height,r,0,Math.PI*2);ctx.fill();}
     ctx.restore();
   }
 
-  function draw() {
-    drawImage();
-    drawPoints();
-    drawLoomi();
-    drawHandles();
+  function handleRadius(){return Math.max(9,els.canvas.width/90);}
+  function drawHandles(){
+    if(!els.handles.checked||!state.guides)return;
+    const keys=["crown","center","leftTemple","rightTemple","chin","nose","mouth"],r=handleRadius();
+    ctx.save();ctx.lineWidth=Math.max(2,els.canvas.width/500);
+    for(const key of keys){const p=state.guides[key];ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fillStyle="rgba(24,20,15,.8)";ctx.fill();ctx.strokeStyle="#f2cf92";ctx.stroke();}
+    ctx.restore();
   }
 
-  function canvasCoords(event) {
-    const rect = canvas.getBoundingClientRect();
-    return {
-      x: (event.clientX - rect.left) * (canvas.width / rect.width),
-      y: (event.clientY - rect.top) * (canvas.height / rect.height)
-    };
+  function drawManualPoints(){
+    if(!state.manualMode)return;
+    const labels=["Œil gauche","Œil droit","Nez","Menton","Tempe gauche","Tempe droite"];
+    ctx.save();ctx.font=`700 ${Math.max(13,els.canvas.width/70)}px system-ui`;
+    state.manualPoints.forEach((p,i)=>{
+      ctx.beginPath();ctx.arc(p.x,p.y,handleRadius(),0,Math.PI*2);ctx.fillStyle="rgba(30,25,19,.85)";ctx.fill();ctx.strokeStyle="#72e6ff";ctx.lineWidth=3;ctx.stroke();
+      ctx.fillStyle="#fff";ctx.fillText(String(i+1),p.x+handleRadius()+4,p.y);
+    });
+    const next=labels[state.manualPoints.length];
+    if(next)setStatus(`Mode manuel : touche le point ${state.manualPoints.length+1}/6, ${next}.`);
+    ctx.restore();
   }
 
-  function findHandle(p) {
-    if (!state.guides || !showHandles.checked) return null;
-    const keys = ["crown", "center", "leftTemple", "rightTemple", "chin", "nose", "mouth"];
-    const threshold = handleRadius() * 1.7;
-    let best = null;
-    let bestD = Infinity;
-    for (const key of keys) {
-      const d = distance(p, state.guides[key]);
-      if (d < threshold && d < bestD) {
-        best = key;
-        bestD = d;
-      }
-    }
+  function draw(){drawImage();drawLandmarks();drawLoomi();drawHandles();drawManualPoints();}
+
+  function coords(e){const r=els.canvas.getBoundingClientRect();return{x:(e.clientX-r.left)*els.canvas.width/r.width,y:(e.clientY-r.top)*els.canvas.height/r.height};}
+  function findHandle(p){
+    if(!state.guides||!els.handles.checked)return null;
+    let best=null,bestD=Infinity;const threshold=handleRadius()*1.8;
+    for(const key of ["crown","center","leftTemple","rightTemple","chin","nose","mouth"]){const d=dist(p,state.guides[key]);if(d<threshold&&d<bestD){best=key;bestD=d;}}
     return best;
   }
 
-  canvas.addEventListener("pointerdown", (event) => {
-    const p = canvasCoords(event);
-    const key = findHandle(p);
-    if (!key) return;
-    state.dragging = key;
-    state.pointerId = event.pointerId;
-    canvas.setPointerCapture(event.pointerId);
-    event.preventDefault();
-  });
-
-  canvas.addEventListener("pointermove", (event) => {
-    if (!state.dragging || event.pointerId !== state.pointerId) return;
-    const p = canvasCoords(event);
-    const g = state.guides;
-    const old = { ...g[state.dragging] };
-    g[state.dragging] = p;
-
-    if (state.dragging === "center") {
-      const dx = p.x - old.x;
-      const dy = p.y - old.y;
-      for (const key of ["crown", "leftTemple", "rightTemple", "chin", "nose", "mouth", "eyeCenter"]) {
-        g[key].x += dx;
-        g[key].y += dy;
+  els.canvas.addEventListener("pointerdown",(e)=>{
+    const p=coords(e);
+    if(state.manualMode){
+      if(state.manualPoints.length<6){
+        state.manualPoints.push(p);
+        if(state.manualPoints.length===6){
+          state.guides=buildManualGuides(state.manualPoints);
+          state.originalGuides=JSON.parse(JSON.stringify(state.guides));
+          state.manualMode=false;
+          setStatus("Construction manuelle créée. Tu peux maintenant ajuster les poignées.","success");
+        }
+        draw();
       }
+      return;
     }
-
-    if (state.dragging === "leftTemple" || state.dragging === "rightTemple") {
-      g.eyeCenter = midpoint(g.leftTemple, g.rightTemple);
-      g.angle = Math.atan2(
-        g.rightTemple.y - g.leftTemple.y,
-        g.rightTemple.x - g.leftTemple.x
-      );
-    }
-
-    draw();
-    event.preventDefault();
+    const key=findHandle(p);if(!key)return;
+    state.dragging=key;state.pointerId=e.pointerId;els.canvas.setPointerCapture(e.pointerId);e.preventDefault();
   });
 
-  function stopDrag(event) {
-    if (state.pointerId !== null && event.pointerId === state.pointerId) {
-      state.dragging = null;
-      state.pointerId = null;
+  els.canvas.addEventListener("pointermove",(e)=>{
+    if(!state.dragging||e.pointerId!==state.pointerId)return;
+    const p=coords(e),g=state.guides,old={...g[state.dragging]};g[state.dragging]=p;
+    if(state.dragging==="center"){
+      const dx=p.x-old.x,dy=p.y-old.y;
+      for(const key of ["crown","leftTemple","rightTemple","chin","nose","mouth","eyeCenter"]){g[key].x+=dx;g[key].y+=dy;}
     }
-  }
-  canvas.addEventListener("pointerup", stopDrag);
-  canvas.addEventListener("pointercancel", stopDrag);
-
-  function resetGuides() {
-    if (state.originalGuides) {
-      state.guides = JSON.parse(JSON.stringify(state.originalGuides));
-      setStatus("Construction revenue au résultat automatique.", "success");
-      draw();
-    } else if (state.image) {
-      state.landmarks = null;
-      state.guides = null;
-      setStatus("Photo conservée. Appuie sur « Détecter le visage » pour recommencer.");
-      draw();
+    if(state.dragging==="leftTemple"||state.dragging==="rightTemple"){
+      g.eyeCenter=mid(g.leftTemple,g.rightTemple);
+      g.angle=Math.atan2(g.rightTemple.y-g.leftTemple.y,g.rightTemple.x-g.leftTemple.x);
     }
+    draw();e.preventDefault();
+  });
+  function endDrag(e){if(e.pointerId===state.pointerId){state.dragging=null;state.pointerId=null;}}
+  els.canvas.addEventListener("pointerup",endDrag);els.canvas.addEventListener("pointercancel",endDrag);
+
+  function startManual(){
+    if(!state.image)return;
+    state.manualMode=true;state.manualPoints=[];state.faceLandmarks=null;state.guides=null;state.originalGuides=null;
+    setStatus("Mode manuel : touche le point 1/6, l'œil gauche.");
+    draw();
   }
 
-  function exportPNG() {
-    if (!state.image) return;
-    const exportCanvas = document.createElement("canvas");
-    exportCanvas.width = canvas.width;
-    exportCanvas.height = canvas.height;
-    const exportCtx = exportCanvas.getContext("2d");
-    exportCtx.drawImage(canvas, 0, 0);
-
-    exportCanvas.toBlob((blob) => {
-      if (!blob) return;
-      const a = document.createElement("a");
-      const url = URL.createObjectURL(blob);
-      a.href = url;
-      a.download = `${state.fileName}-loomi.png`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-      setStatus("Image Loomi exportée en PNG.", "success");
-    }, "image/png");
+  function reset(){
+    state.manualMode=false;state.manualPoints=[];
+    if(state.originalGuides){state.guides=JSON.parse(JSON.stringify(state.originalGuides));setStatus("Construction revenue à sa position initiale.","success");}
+    else {state.guides=null;state.faceLandmarks=null;setStatus("Photo conservée. Relance la détection ou le mode manuel.");}
+    draw();
   }
 
-  input.addEventListener("change", () => loadPhoto(input.files?.[0]));
-  detectButton.addEventListener("click", detectFace);
-  resetButton.addEventListener("click", resetGuides);
-  exportButton.addEventListener("click", exportPNG);
-  opacityRange.addEventListener("input", draw);
-  widthRange.addEventListener("input", draw);
-  showLandmarks.addEventListener("change", draw);
-  showHandles.addEventListener("change", draw);
+  function exportPNG(){
+    if(!state.image)return;
+    const out=document.createElement("canvas");out.width=els.canvas.width;out.height=els.canvas.height;
+    out.getContext("2d").drawImage(els.canvas,0,0);
+    out.toBlob((blob)=>{
+      if(!blob)return;const a=document.createElement("a"),url=URL.createObjectURL(blob);
+      a.href=url;a.download=`${state.filename}-loomi.png`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+      setStatus("Image Loomi exportée en PNG.","success");
+    },"image/png");
+  }
 
-  // The interface is usable immediately. AI loads independently in the background.
-  loadAI();
+  async function runDiagnostic(){
+    let cdnStatus="non testé";
+    try{
+      const response=await fetch(`${MP_BASE}face_mesh.binarypb`,{method:"HEAD",cache:"no-store"});
+      cdnStatus=`HTTP ${response.status} ${response.ok?"OK":"ÉCHEC"}`;
+    }catch(error){cdnStatus=`ÉCHEC : ${error.message}`;}
+
+    const info=[
+      `Date : ${new Date().toLocaleString()}`,
+      `Adresse : ${location.href}`,
+      `En ligne : ${navigator.onLine}`,
+      `Navigateur : ${navigator.userAgent}`,
+      `Protocole sécurisé : ${window.isSecureContext}`,
+      `FaceMesh global présent : ${typeof window.FaceMesh !== "undefined"}`,
+      `Moteur initialisé : ${state.aiReady}`,
+      `Chargement en cours : ${state.aiLoading}`,
+      `Photo chargée : ${Boolean(state.image)}`,
+      `Canvas : ${els.canvas.width}×${els.canvas.height}`,
+      `Test ressource MediaPipe : ${cdnStatus}`,
+      `Dernière détection : ${state.lastDetectionAt || "aucune"}`,
+      `Dernière erreur : ${state.aiError?.stack || state.aiError?.message || state.aiError || "aucune"}`,
+      "",
+      "Journal :",
+      ...state.logs
+    ];
+    els.diagnosticOutput.textContent=info.join("\n");
+    els.dialog.showModal();
+  }
+
+  els.input.addEventListener("change",()=>importPhoto(els.input.files?.[0]));
+  els.detect.addEventListener("click",detectFace);
+  els.manual.addEventListener("click",startManual);
+  els.reset.addEventListener("click",reset);
+  els.export.addEventListener("click",exportPNG);
+  els.diagnostic.addEventListener("click",runDiagnostic);
+  els.closeDiagnostic.addEventListener("click",()=>els.dialog.close());
+  els.copyDiagnostic.addEventListener("click",async()=>{
+    await navigator.clipboard.writeText(els.diagnosticOutput.textContent);
+    els.copyDiagnostic.textContent="Copié ✓";setTimeout(()=>els.copyDiagnostic.textContent="Copier le diagnostic",1400);
+  });
+  for(const el of [els.opacity,els.width,els.landmarks,els.handles])el.addEventListener("input",draw);
+
+  window.addEventListener("error",(e)=>log("Erreur JavaScript globale",`${e.message} @ ${e.filename}:${e.lineno}`));
+  window.addEventListener("unhandledrejection",(e)=>log("Promesse rejetée",e.reason?.stack||e.reason));
+
+  if("serviceWorker" in navigator){
+    window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=3.0.0").then(()=>log("Service worker enregistré")).catch((e)=>log("Service worker non enregistré",e.message)));
+  }
+
+  initAI();
 })();
