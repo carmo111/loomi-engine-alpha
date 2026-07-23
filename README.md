@@ -1,4 +1,4 @@
-# Loomi Engine V8 — Geometry Core
+# Loomi Engine V8.1 — Geometry Core
 
 Cette version remplace les superpositions plates par une construction géométrique cohérente.
 
@@ -26,3 +26,10 @@ Après publication, effectuer un rechargement forcé dans Safari : Cmd + Shift +
 ## Limite actuelle
 
 Le moteur utilise une projection orthographique et une tête paramétrique simplifiée. Il ne reconstruit pas encore un véritable maillage anatomique personnalisé. La géométrie est néanmoins cohérente et calculée en 3D.
+
+## Nouveauté V8.1
+
+- déplacement complet du Loomi par glisser-déposer sur la photo ;
+- réglages séparés horizontal et vertical ;
+- les poignées suivent le déplacement global ;
+- cache mis à jour.

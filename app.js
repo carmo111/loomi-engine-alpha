@@ -6,12 +6,12 @@ const E={
  status:$("status"),badge:$("engineBadge"),loader:$("loader"),analyze:$("analyzeBtn"),manual:$("manualBtn"),
  reset:$("resetBtn"),export:$("exportBtn"),dialog:$("manualDialog"),prompt:$("manualPrompt"),
  cancelManual:$("cancelManual"),undoManual:$("undoManual"),yaw:$("yawOut"),pitch:$("pitchOut"),roll:$("rollOut"),
- sliders:["skullScale","skullHeight","sideDepth","jawWidth","chinLength","opacity","lineWidth"].reduce((o,k)=>(o[k]=$(k),o),{}),
+ sliders:["skullScale","skullHeight","sideDepth","jawWidth","chinLength","offsetX","offsetY","opacity","lineWidth"].reduce((o,k)=>(o[k]=$(k),o),{}),
  showHidden:$("showHidden"),showHandles:$("showHandles"),showMesh:$("showMesh")
 };
 const ctx=E.photo.getContext("2d"),pctx=E.preview.getContext("2d");
 const COLORS={skull:"#f2eee4",side:"#9b6cff",brow:"#ff9c52",eyes:"#4db4ff",nose:"#51d19a",mouth:"#ff78a0",jaw:"#ff648f",axis:"#58d9ad",mesh:"#82919a"};
-const state={image:null,name:"loomi",mesh:null,ready:false,landmarks:null,fit:null,manual:false,manualPoints:[],drag:null};
+const state={image:null,name:"loomi",mesh:null,ready:false,landmarks:null,fit:null,manual:false,manualPoints:[],drag:null,groupDrag:null};
 const MP="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/";
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const lerp=(a,b,t)=>a+(b-a)*t;
@@ -25,7 +25,7 @@ function settings(){
  return {
   skullScale:+E.sliders.skullScale.value/100, skullHeight:+E.sliders.skullHeight.value/100,
   sideDepth:+E.sliders.sideDepth.value/100, jawWidth:+E.sliders.jawWidth.value/100,
-  chinLength:+E.sliders.chinLength.value/100, opacity:+E.sliders.opacity.value/100,
+  chinLength:+E.sliders.chinLength.value/100, offsetX:+E.sliders.offsetX.value, offsetY:+E.sliders.offsetY.value, opacity:+E.sliders.opacity.value/100,
   lineWidth:+E.sliders.lineWidth.value, showHidden:E.showHidden.checked,
   showHandles:E.showHandles.checked,showMesh:E.showMesh.checked
  };
@@ -48,7 +48,7 @@ function importImage(file){
  if(!file||!file.type.startsWith("image/"))return status("Choisis une image compatible.","error");
  const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{
   state.image=img;state.name=file.name.replace(/\.[^.]+$/,"")||"loomi";fitCanvas(img);
-  state.fit=null;state.landmarks=null;E.stage.classList.remove("empty");E.empty.classList.add("hidden");
+  state.fit=null;state.landmarks=null;E.sliders.offsetX.value=0;E.sliders.offsetY.value=0;E.stage.classList.remove("empty");E.empty.classList.add("hidden");
   [E.analyze,E.manual,E.reset,E.export].forEach(x=>x.disabled=false);draw();status("Photo chargée. Analyse automatique ou calibrage manuel.","success");
   if(state.ready)analyze();
  };img.src=r.result};r.readAsDataURL(file);
@@ -95,7 +95,7 @@ function rotate(v,yaw,pitch,roll){
 function projector(fit,preview=false){
  const set=settings(),rx=fit.rx*set.skullScale,ry=fit.ry*set.skullScale*set.skullHeight;
  const scale=preview?Math.min(E.preview.width/(rx*3.0),E.preview.height/(ry*3.0)):1;
- const center=preview?{x:E.preview.width/2,y:E.preview.height*.46}:fit.center;
+ const center=preview?{x:E.preview.width/2,y:E.preview.height*.46}:{x:fit.center.x+set.offsetX,y:fit.center.y+set.offsetY};
  return {
   rx,ry,rz:rx*.91,center,scale,
   point(v){const q=rotate({x:v.x*rx,y:v.y*ry,z:v.z*rx*.91},fit.yaw,fit.pitch,fit.roll);return{x:center.x+q.x*scale,y:center.y+q.y*scale,z:q.z}},
@@ -159,7 +159,7 @@ function draw(){
 }
 function updatePose(){E.yaw.textContent=Math.round(deg(state.fit.yaw))+"°";E.pitch.textContent=Math.round(deg(state.fit.pitch))+"°";E.roll.textContent=Math.round(deg(state.fit.roll))+"°"}
 function handles(){if(!state.fit)return[];const a=state.fit.anchors;return Object.entries(a).map(([name,p])=>({name,p}))}
-function drawHandles(){ctx.save();for(const h of handles()){ctx.fillStyle="#fff";ctx.strokeStyle="#222";ctx.lineWidth=2;ctx.beginPath();ctx.arc(h.p.x,h.p.y,7,0,Math.PI*2);ctx.fill();ctx.stroke()}ctx.restore()}
+function drawHandles(){const s=settings();ctx.save();for(const h of handles()){ctx.fillStyle="#fff";ctx.strokeStyle="#222";ctx.lineWidth=2;ctx.beginPath();ctx.arc(h.p.x+s.offsetX,h.p.y+s.offsetY,7,0,Math.PI*2);ctx.fill();ctx.stroke()}ctx.restore()}
 function canvasPoint(ev){const r=E.photo.getBoundingClientRect();return{x:(ev.clientX-r.left)*E.photo.width/r.width,y:(ev.clientY-r.top)*E.photo.height/r.height}}
 function startManual(){
  state.manual=true;state.manualPoints=[];E.dialog.showModal();E.prompt.textContent=manualTexts[0];status("Calibrage manuel : pose les 8 points dans l’ordre.");
@@ -169,16 +169,65 @@ function manualClick(p){
  state.manualPoints.push(p);if(state.manualPoints.length===8){state.manual=false;E.dialog.close();state.fit=fitFromManual(state.manualPoints);status("Calibrage manuel terminé.","success");draw()}else E.prompt.textContent=manualTexts[state.manualPoints.length];
 }
 E.photo.addEventListener("pointerdown",ev=>{
- const p=canvasPoint(ev);if(state.manual){manualClick(p);return}
- if(!state.fit||!settings().showHandles)return;let best=null,bd=18;for(const h of handles()){const d=dist(p,h.p);if(d<bd){best=h;bd=d}}if(best){state.drag=best.name;E.photo.setPointerCapture(ev.pointerId)}
+ const p=canvasPoint(ev);
+ if(state.manual){manualClick(p);return}
+ if(!state.fit)return;
+
+ if(settings().showHandles){
+   let best=null,bd=18;
+   for(const h of handles()){
+     const hp={x:h.p.x+settings().offsetX,y:h.p.y+settings().offsetY};
+     const d=dist(p,hp);
+     if(d<bd){best=h;bd=d}
+   }
+   if(best){
+     state.drag=best.name;
+     E.photo.setPointerCapture(ev.pointerId);
+     return;
+   }
+ }
+
+ state.groupDrag={
+   start:p,
+   offsetX:+E.sliders.offsetX.value,
+   offsetY:+E.sliders.offsetY.value
+ };
+ E.photo.style.cursor="grabbing";
+ E.photo.setPointerCapture(ev.pointerId);
 });
 E.photo.addEventListener("pointermove",ev=>{
- if(!state.drag||!state.fit)return;const p=canvasPoint(ev);state.fit.anchors[state.drag]=p;const vals=Object.values(state.fit.anchors);state.fit=fitFromManual([state.fit.anchors.eyeL,state.fit.anchors.eyeR,state.fit.anchors.nose,state.fit.anchors.chin,state.fit.anchors.templeL,state.fit.anchors.templeR,state.fit.anchors.top,state.fit.anchors.mouth]);draw();
+ const p=canvasPoint(ev);
+
+ if(state.groupDrag){
+   E.sliders.offsetX.value=clamp(state.groupDrag.offsetX+(p.x-state.groupDrag.start.x),-300,300);
+   E.sliders.offsetY.value=clamp(state.groupDrag.offsetY+(p.y-state.groupDrag.start.y),-300,300);
+   draw();
+   return;
+ }
+
+ if(!state.drag||!state.fit)return;
+ const s=settings();
+ const local={x:p.x-s.offsetX,y:p.y-s.offsetY};
+ state.fit.anchors[state.drag]=local;
+ state.fit=fitFromManual([
+   state.fit.anchors.eyeL,state.fit.anchors.eyeR,state.fit.anchors.nose,state.fit.anchors.chin,
+   state.fit.anchors.templeL,state.fit.anchors.templeR,state.fit.anchors.top,state.fit.anchors.mouth
+ ]);
+ draw();
 });
-E.photo.addEventListener("pointerup",()=>state.drag=null);
+E.photo.addEventListener("pointerup",()=>{
+ state.drag=null;
+ state.groupDrag=null;
+ E.photo.style.cursor="grab";
+});
+E.photo.addEventListener("pointercancel",()=>{
+ state.drag=null;
+ state.groupDrag=null;
+ E.photo.style.cursor="grab";
+});
 E.input.addEventListener("change",e=>importImage(e.target.files[0]));E.analyze.addEventListener("click",analyze);E.manual.addEventListener("click",startManual);
 E.cancelManual.addEventListener("click",()=>{state.manual=false;E.dialog.close()});E.undoManual.addEventListener("click",()=>{state.manualPoints.pop();E.prompt.textContent=manualTexts[state.manualPoints.length]});
-E.reset.addEventListener("click",()=>{state.fit=null;state.manualPoints=[];draw();status("Construction réinitialisée.")});
+E.reset.addEventListener("click",()=>{state.fit=null;state.manualPoints=[];E.sliders.offsetX.value=0;E.sliders.offsetY.value=0;draw();status("Construction réinitialisée.")});
 E.export.addEventListener("click",()=>{draw();const a=document.createElement("a");a.download=state.name+"-loomi-v8.png";a.href=E.photo.toDataURL("image/png");a.click()});
 [...Object.values(E.sliders),E.showHidden,E.showHandles,E.showMesh].forEach(el=>el.addEventListener("input",draw));
 window.addEventListener("load",()=>{init();if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js?v=1.0.0").catch(()=>{})});

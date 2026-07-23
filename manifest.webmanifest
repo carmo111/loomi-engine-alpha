@@ -1,6 +1,6 @@
 {
-  "name": "Loomi Engine V8",
-  "short_name": "Loomi V8",
+  "name": "Loomi Engine V8.1",
+  "short_name": "Loomi V8.1",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#0c0f11",
