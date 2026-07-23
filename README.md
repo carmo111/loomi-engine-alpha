@@ -1,18 +1,28 @@
-# Loomi Engine V7
+# Loomi Engine V8 — Geometry Core
 
-Version testable pour GitHub Pages.
+Cette version remplace les superpositions plates par une construction géométrique cohérente.
 
-## Nouveautés
+## Moteur
 
-- sphère crânienne projetée avec silhouette géométrique ;
-- plan latéral calculé comme intersection réelle avec l’ellipsoïde ;
-- traits avant/arrière avec occultation et pointillés optionnels ;
-- mâchoire courbe en bloc, sans triangle ;
-- lignes de sourcils, yeux, nez et bouche projetées dans la même pose ;
-- aperçu indépendant utilisant exactement le même moteur ;
-- mode automatique MediaPipe et secours manuel à six points ;
-- export PNG, diagnostic et PWA.
+- crâne : ellipsoïde orienté en 3D ;
+- plan latéral : intersection réelle d’un plan avec l’ellipsoïde ;
+- repères horizontaux : sections de l’ellipsoïde ;
+- axe central : méridien projeté ;
+- mâchoire : bloc mandibulaire avant/arrière ;
+- parties arrière : pointillés optionnels ;
+- même géométrie pour la photo et l’aperçu ;
+- détection MediaPipe FaceMesh ;
+- calibrage manuel à 8 points ;
+- poignées déplaçables ;
+- export PNG ;
+- PWA et cache versionné.
 
 ## Installation GitHub Pages
 
-Place tous les fichiers directement à la racine du dépôt, puis valide le commit. Attends une à trois minutes et recharge la page avec Cmd+Shift+R sur Mac.
+Copier directement tous les fichiers de ce dossier à la racine du dépôt, puis valider le commit.
+
+Après publication, effectuer un rechargement forcé dans Safari : Cmd + Shift + R.
+
+## Limite actuelle
+
+Le moteur utilise une projection orthographique et une tête paramétrique simplifiée. Il ne reconstruit pas encore un véritable maillage anatomique personnalisé. La géométrie est néanmoins cohérente et calculée en 3D.
