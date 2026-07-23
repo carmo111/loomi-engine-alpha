@@ -1,15 +1,1 @@
-{
-  "name": "Loomi Engine V6",
-  "short_name": "Loomi V6",
-  "start_url": "./",
-  "display": "standalone",
-  "background_color": "#111315",
-  "theme_color": "#151719",
-  "icons": [
-    {
-      "src": "icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml"
-    }
-  ]
-}
+{"name":"Loomi Engine V7","short_name":"Loomi V7","start_url":"./","display":"standalone","background_color":"#0c0f11","theme_color":"#111416","icons":[{"src":"./icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}

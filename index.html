@@ -3,39 +3,67 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#151719">
-<title>Loomi Engine V6</title>
-<link rel="manifest" href="./manifest.webmanifest?v=6.0.0">
-<link rel="icon" href="./icon.svg?v=6.0.0" type="image/svg+xml">
-<link rel="stylesheet" href="./styles.css?v=6.0.0">
+<meta name="theme-color" content="#111416">
+<title>Loomi Engine V7</title>
+<link rel="manifest" href="./manifest.webmanifest?v=7.0.0">
+<link rel="icon" href="./icon.svg?v=7.0.0" type="image/svg+xml">
+<link rel="stylesheet" href="./styles.css?v=7.0.0">
 </head>
 <body>
-<header class="topbar"><div><p class="eyebrow">LOOMI METHOD</p><h1>Loomi Engine <span>V6</span></h1></div><div id="aiBadge" class="badge loading">Moteur en attente</div></header>
+<header class="topbar">
+  <div><p class="eyebrow">LOOMI METHOD</p><h1>Loomi Engine <span>V7</span></h1></div>
+  <div id="aiBadge" class="badge loading">Chargement du moteur</div>
+</header>
 <main class="app">
-<aside class="panel controls">
-<section class="intro"><span class="step">1</span><div><h2>Importer un portrait</h2><p>V6 reconstruit un crâne simplifié, son plan latéral et la mâchoire avant de projeter les lignes.</p></div></section>
-<label class="file-button" for="photoInput">📷 <strong>Importer une photo</strong></label><input id="photoInput" type="file" accept="image/*">
-<div id="status" class="status">Le moteur se charge en arrière-plan.</div>
-<div class="button-grid"><button id="detectButton" class="primary" disabled>Analyser</button><button id="manualButton" disabled>Mode manuel</button><button id="resetButton" disabled>Réinitialiser</button><button id="exportButton" disabled>Exporter PNG</button><button id="diagnosticButton">Diagnostic</button></div>
-<details open><summary>Construction 3D</summary><div class="settings">
-<label><span>Opacité</span><input id="opacityRange" type="range" min="10" max="100" value="88"></label>
-<label><span>Épaisseur</span><input id="widthRange" type="range" min="1" max="8" value="3"></label>
-<label><span>Taille du crâne</span><input id="skullRange" type="range" min="82" max="118" value="100"></label>
-<label><span>Plan latéral</span><input id="sideRange" type="range" min="65" max="125" value="100"></label>
-<label><span>Mâchoire</span><input id="jawRange" type="range" min="75" max="125" value="100"></label>
-<label class="check"><input id="showSkull" type="checkbox" checked><span>Crâne</span></label>
-<label class="check"><input id="showSide" type="checkbox" checked><span>Plan latéral</span></label>
-<label class="check"><input id="showJaw" type="checkbox" checked><span>Mâchoire</span></label>
-<label class="check"><input id="showLevels" type="checkbox" checked><span>Lignes de construction</span></label>
-<label class="check"><input id="showHandles" type="checkbox" checked><span>Poignées de correction</span></label>
-<label class="check"><input id="learningMode" type="checkbox"><span>Mode apprentissage</span></label>
-</div></details>
-<div class="help"><strong>Reconstruction géométrique</strong><p>Les repères du visage servent seulement à estimer la pose. Les lignes sont ensuite projetées depuis un modèle 3D simplifié.</p></div>
-</aside>
-<section class="workspace"><div id="stage" class="stage empty"><canvas id="canvas"></canvas><div id="emptyState" class="empty-state"><div class="empty-icon">◯</div><h2>Ton portrait apparaîtra ici</h2><p>Puis Loomi reconstruira la tête.</p></div><div id="loader" class="loader hidden"><div class="spinner"></div><p>Reconstruction en cours…</p></div></div><p class="privacy">La photo reste dans ton navigateur. Internet sert uniquement à charger MediaPipe.</p></section>
-<aside class="panel model-panel"><div class="model-head"><div><p class="eyebrow">MODÈLE</p><h2>Tête 3D simplifiée</h2></div><span id="poseLabel">0° / 0°</span></div><canvas id="modelCanvas" width="420" height="420"></canvas><div class="metrics"><div><span>Lacet</span><b id="yawValue">0°</b></div><div><span>Tangage</span><b id="pitchValue">0°</b></div><div><span>Roulis</span><b id="rollValue">0°</b></div></div><div class="legend"><span><i class="violet"></i>Crâne</span><span><i class="orange"></i>Sourcils</span><span><i class="blue"></i>Yeux</span><span><i class="green"></i>Axe</span><span><i class="pink"></i>Mâchoire</span></div></aside>
+  <aside class="panel controls">
+    <section class="intro"><span class="step">V7</span><div><h2>Moteur géométrique</h2><p>La photo estime la pose. La construction est ensuite générée depuis une sphère, une coupe latérale et un bloc mandibulaire cohérents.</p></div></section>
+    <label class="file-button" for="photoInput">📷 <strong>Importer une photo</strong></label>
+    <input id="photoInput" type="file" accept="image/*">
+    <div id="status" class="status">Tu peux déjà importer un portrait.</div>
+    <div class="button-grid">
+      <button id="detectButton" class="primary" disabled>Analyser</button>
+      <button id="manualButton" disabled>Mode manuel</button>
+      <button id="resetButton" disabled>Réinitialiser</button>
+      <button id="exportButton" disabled>Exporter PNG</button>
+      <button id="diagnosticButton">Diagnostic</button>
+    </div>
+    <details open><summary>Réglages V7</summary><div class="settings">
+      <label><span>Opacité</span><input id="opacityRange" type="range" min="10" max="100" value="88"></label>
+      <label><span>Épaisseur</span><input id="widthRange" type="range" min="1" max="7" value="3"></label>
+      <label><span>Taille du crâne</span><input id="skullRange" type="range" min="85" max="115" value="100"></label>
+      <label><span>Profondeur de coupe</span><input id="sideDepthRange" type="range" min="35" max="80" value="58"></label>
+      <label><span>Taille du plan latéral</span><input id="sideSizeRange" type="range" min="70" max="120" value="96"></label>
+      <label><span>Largeur de mâchoire</span><input id="jawRange" type="range" min="75" max="125" value="100"></label>
+      <label class="check"><input id="showSkull" type="checkbox" checked><span>Sphère du crâne</span></label>
+      <label class="check"><input id="showSide" type="checkbox" checked><span>Coupe latérale</span></label>
+      <label class="check"><input id="showJaw" type="checkbox" checked><span>Bloc mandibulaire</span></label>
+      <label class="check"><input id="showLevels" type="checkbox" checked><span>Repères horizontaux</span></label>
+      <label class="check"><input id="showBack" type="checkbox"><span>Traits cachés en pointillés</span></label>
+      <label class="check"><input id="showHandles" type="checkbox" checked><span>Poignées de correction</span></label>
+      <label class="check"><input id="learningMode" type="checkbox"><span>Mode apprentissage</span></label>
+    </div></details>
+    <div class="help"><strong>Mode manuel</strong><p>Pose 6 points dans cet ordre : œil gauche, œil droit, nez, menton, tempe gauche, tempe droite.</p></div>
+  </aside>
+
+  <section class="workspace">
+    <div id="stage" class="stage empty">
+      <canvas id="canvas"></canvas>
+      <div id="emptyState" class="empty-state"><div class="empty-icon">◯</div><h2>Importe un portrait</h2><p>La construction V7 apparaîtra ici.</p></div>
+      <div id="loader" class="loader hidden"><div class="spinner"></div><p>Analyse géométrique…</p></div>
+    </div>
+    <p class="privacy">La photo reste dans ton navigateur. MediaPipe est chargé depuis Internet.</p>
+  </section>
+
+  <aside class="panel model-panel">
+    <div class="model-head"><div><p class="eyebrow">RECONSTRUCTION</p><h2>Tête 3D simplifiée</h2></div><span id="poseLabel">0° / 0°</span></div>
+    <canvas id="modelCanvas" width="440" height="440"></canvas>
+    <div class="metrics"><div><span>Lacet</span><b id="yawValue">0°</b></div><div><span>Tangage</span><b id="pitchValue">0°</b></div><div><span>Roulis</span><b id="rollValue">0°</b></div></div>
+    <div class="legend"><span><i class="bone"></i>Crâne</span><span><i class="violet"></i>Plan latéral</span><span><i class="orange"></i>Sourcils</span><span><i class="blue"></i>Yeux</span><span><i class="green"></i>Axe</span><span><i class="pink"></i>Mâchoire</span></div>
+    <div class="v7-note"><strong>V7</strong><p>Le plan violet n’est plus un cercle flottant. Il correspond à la véritable intersection d’un plan avec la sphère du crâne.</p></div>
+  </aside>
 </main>
-<dialog id="diagnosticDialog"><div class="dialog-head"><h2>Diagnostic Loomi V6</h2><button id="closeDiagnostic">×</button></div><pre id="diagnosticOutput"></pre><button id="copyDiagnostic">Copier</button></dialog>
+<dialog id="diagnosticDialog"><div class="dialog-head"><h2>Diagnostic Loomi V7</h2><button id="closeDiagnostic">×</button></div><pre id="diagnosticOutput"></pre><button id="copyDiagnostic">Copier</button></dialog>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh.js" crossorigin="anonymous"></script>
-<script src="./app.js?v=6.0.0" defer></script>
-</body></html>
+<script src="./app.js?v=7.0.0" defer></script>
+</body>
+</html>

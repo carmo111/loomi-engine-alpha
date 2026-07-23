@@ -1,16 +1,18 @@
-# Loomi Engine V6
+# Loomi Engine V7
 
-Version complète et testable pour GitHub Pages.
+Version testable pour GitHub Pages.
 
 ## Nouveautés
-- Détection MediaPipe FaceMesh
-- Estimation lacet, tangage et roulis
-- Reconstruction géométrique simplifiée : ellipsoïde du crâne, plan latéral, axe et bloc de mâchoire
-- Projection des lignes sourcils, yeux, nez et bouche
-- Aperçu séparé du modèle 3D
-- Mode manuel à six points
-- Poignées de correction
-- Export PNG et PWA
 
-## Publication
-Décompresser le ZIP puis envoyer tous les fichiers à la racine du dépôt GitHub Pages.
+- sphère crânienne projetée avec silhouette géométrique ;
+- plan latéral calculé comme intersection réelle avec l’ellipsoïde ;
+- traits avant/arrière avec occultation et pointillés optionnels ;
+- mâchoire courbe en bloc, sans triangle ;
+- lignes de sourcils, yeux, nez et bouche projetées dans la même pose ;
+- aperçu indépendant utilisant exactement le même moteur ;
+- mode automatique MediaPipe et secours manuel à six points ;
+- export PNG, diagnostic et PWA.
+
+## Installation GitHub Pages
+
+Place tous les fichiers directement à la racine du dépôt, puis valide le commit. Attends une à trois minutes et recharge la page avec Cmd+Shift+R sur Mac.
