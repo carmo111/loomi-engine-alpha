@@ -1,18 +1,15 @@
 {
-  "name": "Loomi Engine",
-  "short_name": "Loomi",
-  "description": "Assistant de construction Loomi avec lignes distinctes des sourcils et des yeux.",
+  "name": "Loomi Engine V6",
+  "short_name": "Loomi V6",
   "start_url": "./",
-  "scope": "./",
   "display": "standalone",
-  "background_color": "#171512",
-  "theme_color": "#171512",
+  "background_color": "#111315",
+  "theme_color": "#151719",
   "icons": [
     {
-      "src": "./icon.svg",
+      "src": "icon.svg",
       "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "type": "image/svg+xml"
     }
   ]
 }
