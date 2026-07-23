@@ -8,7 +8,8 @@
     detect: $("detectButton"), manual: $("manualButton"), reset: $("resetButton"), export: $("exportButton"),
     diagnostic: $("diagnosticButton"), dialog: $("diagnosticDialog"), closeDiagnostic: $("closeDiagnostic"),
     diagnosticOutput: $("diagnosticOutput"), copyDiagnostic: $("copyDiagnostic"),
-    opacity: $("opacityRange"), width: $("widthRange"), landmarks: $("showLandmarks"), handles: $("showHandles")
+    opacity: $("opacityRange"), width: $("widthRange"), landmarks: $("showLandmarks"),
+    handles: $("showHandles"), learning: $("learningMode")
   };
   const ctx = els.canvas.getContext("2d");
 
@@ -16,7 +17,8 @@
     image: null, filename: "loomi-portrait", faceMesh: null, aiReady: false, aiLoading: false,
     aiError: null, faceLandmarks: null, guides: null, originalGuides: null,
     dragging: null, pointerId: null, manualMode: false, manualPoints: [],
-    logs: [], lastDetectionAt: null
+    logs: [], lastDetectionAt: null,
+    learningStep: 0
   };
 
   const MP_BASE = "https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/";
@@ -194,11 +196,12 @@
   const dist = (a,b) => Math.hypot(a.x-b.x,a.y-b.y);
 
   function buildGuides(lm) {
-    // MediaPipe anchors chosen for stability across front, three-quarter and profile views.
     const leftEyeOuter = P(lm[33]);
     const rightEyeOuter = P(lm[263]);
     const leftEyeInner = P(lm[133]);
     const rightEyeInner = P(lm[362]);
+    const leftBrow = P(lm[70]);
+    const rightBrow = P(lm[300]);
     const leftTempleRaw = P(lm[234]);
     const rightTempleRaw = P(lm[454]);
     const leftJaw = P(lm[172]);
@@ -212,6 +215,7 @@
     const rightCheek = P(lm[280]);
 
     const eyeCenter = mid(mid(leftEyeOuter, leftEyeInner), mid(rightEyeOuter, rightEyeInner));
+    const browCenter = mid(leftBrow, rightBrow);
     const eyeSpan = dist(leftEyeOuter, rightEyeOuter);
     const faceWidth = dist(leftTempleRaw, rightTempleRaw);
     const faceHeight = dist(forehead, chin);
@@ -220,20 +224,17 @@
       rightEyeOuter.x - leftEyeOuter.x
     );
 
-    // Yaw estimate: horizontal nose displacement, reinforced by landmark depth.
     const horizontalYaw = Math.max(-1, Math.min(1, (nose.x - eyeCenter.x) / Math.max(1, eyeSpan * 0.36)));
     const depthYaw = Math.max(-1, Math.min(1, ((lm[234]?.z || 0) - (lm[454]?.z || 0)) * 7.5));
     const yaw = Math.max(-1, Math.min(1, horizontalYaw * 0.72 + depthYaw * 0.28));
 
-    // Pitch estimate from the vertical proportions around the nose.
     const upper = dist(forehead, noseBridge);
     const lower = dist(noseBridge, chin);
     const pitch = Math.max(-0.65, Math.min(0.65, (upper / Math.max(1, lower) - 0.72) * 1.35));
 
-    // A Loomis cranium is smaller and sits behind the facial mask.
     const center = {
-      x: eyeCenter.x - yaw * faceWidth * 0.075 + (chin.x - forehead.x) * 0.035,
-      y: eyeCenter.y - faceHeight * (0.155 + pitch * 0.025)
+      x: browCenter.x - yaw * faceWidth * 0.06 + (chin.x - forehead.x) * 0.025,
+      y: browCenter.y - faceHeight * (0.035 + pitch * 0.018)
     };
 
     const rx = faceWidth * (0.515 - Math.abs(yaw) * 0.028);
@@ -245,7 +246,6 @@
       y: center.y - c * ry
     };
 
-    // Temples are pulled slightly inward to avoid an oversized skull.
     const inset = 0.055 + Math.abs(yaw) * 0.025;
     const leftTemple = {
       x: leftTempleRaw.x + (rightTempleRaw.x - leftTempleRaw.x) * inset,
@@ -256,8 +256,12 @@
       y: rightTempleRaw.y + (leftTempleRaw.y - rightTempleRaw.y) * inset
     };
 
+    const browLineY = center.y + ry * (0.03 + pitch * 0.03);
+    const eyeLineY = eyeCenter.y;
+
     return {
-      center, crown, chin, leftTemple, rightTemple, nose, mouth, eyeCenter,
+      center, crown, chin, leftTemple, rightTemple, nose, mouth,
+      eyeCenter, browCenter, browLineY, eyeLineY,
       leftJaw, rightJaw, leftCheek, rightCheek,
       angle, yaw, pitch, rx, ry
     };
@@ -270,9 +274,13 @@
     const faceWidth = dist(leftTemple,rightTemple);
     const faceHeight = dist(eyeCenter,chin)*1.55;
     const yaw = Math.max(-1, Math.min(1, (nose.x-eyeCenter.x)/Math.max(1,dist(leftEye,rightEye)*.36)));
+    const browCenter = {
+      x: eyeCenter.x - Math.sin(angle)*faceHeight*.075,
+      y: eyeCenter.y - Math.cos(angle)*faceHeight*.075
+    };
     const center = {
-      x: eyeCenter.x-yaw*faceWidth*.07+(chin.x-eyeCenter.x)*.03,
-      y: eyeCenter.y-faceHeight*.15
+      x: browCenter.x-yaw*faceWidth*.06+(chin.x-eyeCenter.x)*.025,
+      y: browCenter.y-faceHeight*.035
     };
     const mouth = {
       x: nose.x+(chin.x-nose.x)*.48,
@@ -287,7 +295,11 @@
     const rightJaw={x:rightTemple.x+(chin.x-rightTemple.x)*.66,y:rightTemple.y+(chin.y-rightTemple.y)*.68};
     const leftCheek={x:leftTemple.x+(chin.x-leftTemple.x)*.38,y:leftTemple.y+(chin.y-leftTemple.y)*.4};
     const rightCheek={x:rightTemple.x+(chin.x-rightTemple.x)*.38,y:rightTemple.y+(chin.y-rightTemple.y)*.4};
-    return {center,crown,chin,leftTemple,rightTemple,nose,mouth,eyeCenter,leftJaw,rightJaw,leftCheek,rightCheek,angle,yaw,pitch:0,rx,ry};
+    return {
+      center,crown,chin,leftTemple,rightTemple,nose,mouth,eyeCenter,browCenter,
+      browLineY:browCenter.y,eyeLineY:eyeCenter.y,
+      leftJaw,rightJaw,leftCheek,rightCheek,angle,yaw,pitch:0,rx,ry
+    };
   }
 
   function drawImage() {
@@ -308,99 +320,119 @@
     const opacity=Number(els.opacity.value)/100;
     const width=Number(els.width.value)*(els.canvas.width/1000+0.45);
     const yaw=g.yaw||0;
+    const learning = els.learning.checked;
     ctx.save();
-    ctx.strokeStyle=`rgba(255,232,184,${opacity})`;
-    ctx.fillStyle=`rgba(255,232,184,${opacity})`;
     ctx.lineWidth=width; ctx.lineCap="round"; ctx.lineJoin="round";
     ctx.shadowColor="rgba(0,0,0,.42)"; ctx.shadowBlur=3;
 
-    // Cranium.
-    ctx.beginPath();
-    for(let i=0;i<=120;i++){
-      const p=ellipsePoint(g,i/120*Math.PI*2);
-      if(i===0)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y);
+    const drawStroke = (color, alpha=opacity) => {
+      ctx.strokeStyle=color.replace("ALPHA", alpha.toFixed(3));
+    };
+
+    // 1. Cranium
+    if(!learning || state.learningStep >= 0){
+      drawStroke(`rgba(255,238,205,ALPHA)`);
+      ctx.beginPath();
+      for(let i=0;i<=120;i++){
+        const p=ellipsePoint(g,i/120*Math.PI*2);
+        if(i===0)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y);
+      }
+      ctx.closePath(); ctx.stroke();
     }
-    ctx.closePath(); ctx.stroke();
 
-    // Brow axis follows the tilt and bends subtly with perspective.
-    const browControl={
-      x:g.eyeCenter.x-yaw*dist(g.leftTemple,g.rightTemple)*.035,
-      y:g.eyeCenter.y+Math.abs(yaw)*dist(g.leftTemple,g.rightTemple)*.018
-    };
-    ctx.beginPath();
-    ctx.moveTo(g.leftTemple.x,g.leftTemple.y);
-    ctx.quadraticCurveTo(browControl.x,browControl.y,g.rightTemple.x,g.rightTemple.y);
-    ctx.stroke();
-
-    // Central axis: offset according to yaw rather than splitting the skull mechanically.
-    const top=ellipsePoint(g,-Math.PI/2);
-    const upperControl={
-      x:g.center.x+yaw*(g.rx||80)*.18,
-      y:g.center.y+(g.ry||100)*.18
-    };
-    ctx.beginPath(); ctx.moveTo(top.x,top.y);
-    ctx.bezierCurveTo(upperControl.x,upperControl.y,g.nose.x,g.nose.y,g.chin.x,g.chin.y);
-    ctx.stroke();
-
-    // Side plane is always placed on the receding side of the head.
-    const recedingRight = yaw < 0;
-    const sideTemple = recedingRight ? g.rightTemple : g.leftTemple;
-    const sideSign = recedingRight ? 1 : -1;
-    const planeR = (g.rx||dist(g.leftTemple,g.rightTemple)*.5) * (0.34-0.07*Math.min(1,Math.abs(yaw)));
-    const planeCenter={
-      x:sideTemple.x-Math.cos(g.angle)*sideSign*planeR*.28,
-      y:sideTemple.y-Math.sin(g.angle)*sideSign*planeR*.28
-    };
-    ctx.beginPath();
-    ctx.ellipse(
-      planeCenter.x,planeCenter.y,
-      planeR*(0.55+Math.abs(yaw)*0.18),planeR,
-      g.angle,0,Math.PI*2
-    );
-    ctx.stroke();
-
-    // Perspective-aware jaw: the far side is shorter and tighter.
-    const nearIsRight = yaw > 0;
-    const nearJaw = nearIsRight ? g.rightJaw : g.leftJaw;
-    const farJaw = nearIsRight ? g.leftJaw : g.rightJaw;
-    const nearTemple = nearIsRight ? g.rightTemple : g.leftTemple;
-    const farTemple = nearIsRight ? g.leftTemple : g.rightTemple;
-    const nearCheek = nearIsRight ? g.rightCheek : g.leftCheek;
-    const farCheek = nearIsRight ? g.leftCheek : g.rightCheek;
-
-    ctx.beginPath();
-    ctx.moveTo(farTemple.x,farTemple.y);
-    ctx.quadraticCurveTo(
-      farCheek.x+(g.chin.x-farCheek.x)*.12,
-      farCheek.y,
-      farJaw.x+(g.chin.x-farJaw.x)*.08,
-      farJaw.y
-    );
-    ctx.quadraticCurveTo(g.chin.x-(nearIsRight?1:-1)*Math.abs(yaw)*8,g.chin.y-4,g.chin.x,g.chin.y);
-    ctx.quadraticCurveTo(
-      nearJaw.x+(g.chin.x-nearJaw.x)*.05,
-      nearJaw.y,
-      nearCheek.x,
-      nearCheek.y
-    );
-    ctx.quadraticCurveTo(nearTemple.x,nearTemple.y,nearTemple.x,nearTemple.y);
-    ctx.stroke();
-
-    // Nose and mouth cross-contours curve with yaw instead of remaining straight.
     const dirX=Math.cos(g.angle),dirY=Math.sin(g.angle);
     const normalX=-dirY,normalY=dirX;
-    const half=dist(g.leftTemple,g.rightTemple)*.40;
-    ctx.setLineDash([9*Number(els.width.value),7*Number(els.width.value)]);
-    ctx.globalAlpha=.68;
-    for(const [p,m,bend] of [[g.nose,1,.055],[g.mouth,.82,.04]]){
-      const a={x:p.x-dirX*half*m,y:p.y-dirY*half*m};
-      const b={x:p.x+dirX*half*m,y:p.y+dirY*half*m};
-      const cp={
-        x:p.x+normalX*half*yaw*bend,
-        y:p.y+normalY*half*yaw*bend
+    const headHalf=dist(g.leftTemple,g.rightTemple)*.5;
+
+    // 2. Brow line, intentionally near the cranium midpoint.
+    if(!learning || state.learningStep >= 1){
+      drawStroke(`rgba(255,159,67,ALPHA)`);
+      const browMid={
+        x:g.center.x + normalX*(g.pitch||0)*10 - yaw*headHalf*.02,
+        y:g.center.y + normalY*(g.pitch||0)*10
       };
+      const a={x:browMid.x-dirX*headHalf*.98,y:browMid.y-dirY*headHalf*.98};
+      const b={x:browMid.x+dirX*headHalf*.98,y:browMid.y+dirY*headHalf*.98};
+      const cp={x:browMid.x+normalX*yaw*headHalf*.055,y:browMid.y+normalY*yaw*headHalf*.055};
       ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.quadraticCurveTo(cp.x,cp.y,b.x,b.y);ctx.stroke();
     }
+
+    // 3. Eye line, distinct and lower than the brow line.
+    if(!learning || state.learningStep >= 2){
+      drawStroke(`rgba(78,143,255,ALPHA)`);
+      const eyeMid=g.eyeCenter;
+      const a={x:eyeMid.x-dirX*headHalf*.92,y:eyeMid.y-dirY*headHalf*.92};
+      const b={x:eyeMid.x+dirX*headHalf*.92,y:eyeMid.y+dirY*headHalf*.92};
+      const cp={x:eyeMid.x+normalX*yaw*headHalf*.045,y:eyeMid.y+normalY*yaw*headHalf*.045};
+      ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.quadraticCurveTo(cp.x,cp.y,b.x,b.y);ctx.stroke();
+    }
+
+    // 4. Central axis.
+    if(!learning || state.learningStep >= 3){
+      drawStroke(`rgba(255,222,54,ALPHA)`);
+      const top=ellipsePoint(g,-Math.PI/2);
+      const upperControl={
+        x:g.center.x+yaw*(g.rx||80)*.18,
+        y:g.center.y+(g.ry||100)*.18
+      };
+      ctx.beginPath(); ctx.moveTo(top.x,top.y);
+      ctx.bezierCurveTo(upperControl.x,upperControl.y,g.nose.x,g.nose.y,g.chin.x,g.chin.y);
+      ctx.stroke();
+    }
+
+    // 5. Side plane.
+    if(!learning || state.learningStep >= 4){
+      drawStroke(`rgba(171,110,255,ALPHA)`);
+      const recedingRight = yaw < 0;
+      const sideTemple = recedingRight ? g.rightTemple : g.leftTemple;
+      const sideSign = recedingRight ? 1 : -1;
+      const planeR = (g.rx||headHalf) * (0.34-0.07*Math.min(1,Math.abs(yaw)));
+      const planeCenter={
+        x:sideTemple.x-Math.cos(g.angle)*sideSign*planeR*.28,
+        y:sideTemple.y-Math.sin(g.angle)*sideSign*planeR*.28
+      };
+      ctx.beginPath();
+      ctx.ellipse(planeCenter.x,planeCenter.y,planeR*(0.55+Math.abs(yaw)*0.18),planeR,g.angle,0,Math.PI*2);
+      ctx.stroke();
+    }
+
+    // 6. Jaw.
+    if(!learning || state.learningStep >= 5){
+      drawStroke(`rgba(205,133,63,ALPHA)`);
+      const nearIsRight = yaw > 0;
+      const nearJaw = nearIsRight ? g.rightJaw : g.leftJaw;
+      const farJaw = nearIsRight ? g.leftJaw : g.rightJaw;
+      const nearTemple = nearIsRight ? g.rightTemple : g.leftTemple;
+      const farTemple = nearIsRight ? g.leftTemple : g.rightTemple;
+      const nearCheek = nearIsRight ? g.rightCheek : g.leftCheek;
+      const farCheek = nearIsRight ? g.leftCheek : g.rightCheek;
+      ctx.beginPath();
+      ctx.moveTo(farTemple.x,farTemple.y);
+      ctx.quadraticCurveTo(farCheek.x+(g.chin.x-farCheek.x)*.12,farCheek.y,farJaw.x+(g.chin.x-farJaw.x)*.08,farJaw.y);
+      ctx.quadraticCurveTo(g.chin.x-(nearIsRight?1:-1)*Math.abs(yaw)*8,g.chin.y-4,g.chin.x,g.chin.y);
+      ctx.quadraticCurveTo(nearJaw.x+(g.chin.x-nearJaw.x)*.05,nearJaw.y,nearCheek.x,nearCheek.y);
+      ctx.quadraticCurveTo(nearTemple.x,nearTemple.y,nearTemple.x,nearTemple.y);
+      ctx.stroke();
+    }
+
+    // 7. Nose, mouth and chin construction lines.
+    if(!learning || state.learningStep >= 6){
+      const contours=[
+        [g.nose,1,`rgba(91,207,184,ALPHA)`],
+        [g.mouth,.82,`rgba(244,143,177,ALPHA)`],
+        [{x:(g.mouth.x+g.chin.x)/2,y:(g.mouth.y+g.chin.y)/2},.72,`rgba(255,66,84,ALPHA)`]
+      ];
+      ctx.setLineDash([9*Number(els.width.value),7*Number(els.width.value)]);
+      for(const [p,m,color] of contours){
+        drawStroke(color,opacity*.78);
+        const a={x:p.x-dirX*headHalf*.8*m,y:p.y-dirY*headHalf*.8*m};
+        const b={x:p.x+dirX*headHalf*.8*m,y:p.y+dirY*headHalf*.8*m};
+        const cp={x:p.x+normalX*headHalf*yaw*.045,y:p.y+normalY*headHalf*yaw*.045};
+        ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.quadraticCurveTo(cp.x,cp.y,b.x,b.y);ctx.stroke();
+      }
+      ctx.setLineDash([]);
+    }
+
     ctx.restore();
   }
 
@@ -415,7 +447,7 @@
   function handleRadius(){return Math.max(9,els.canvas.width/90);}
   function drawHandles(){
     if(!els.handles.checked||!state.guides)return;
-    const keys=["crown","center","leftTemple","rightTemple","chin","nose","mouth"],r=handleRadius();
+    const keys=["crown","center","leftTemple","rightTemple","chin","nose","mouth","eyeCenter"],r=handleRadius();
     ctx.save();ctx.lineWidth=Math.max(2,els.canvas.width/500);
     for(const key of keys){const p=state.guides[key];ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fillStyle="rgba(24,20,15,.8)";ctx.fill();ctx.strokeStyle="#f2cf92";ctx.stroke();}
     ctx.restore();
@@ -440,7 +472,7 @@
   function findHandle(p){
     if(!state.guides||!els.handles.checked)return null;
     let best=null,bestD=Infinity;const threshold=handleRadius()*1.8;
-    for(const key of ["crown","center","leftTemple","rightTemple","chin","nose","mouth"]){const d=dist(p,state.guides[key]);if(d<threshold&&d<bestD){best=key;bestD=d;}}
+    for(const key of ["crown","center","leftTemple","rightTemple","chin","nose","mouth","eyeCenter"]){const d=dist(p,state.guides[key]);if(d<threshold&&d<bestD){best=key;bestD=d;}}
     return best;
   }
 
@@ -546,6 +578,16 @@
     els.copyDiagnostic.textContent="Copié ✓";setTimeout(()=>els.copyDiagnostic.textContent="Copier le diagnostic",1400);
   });
   for(const el of [els.opacity,els.width,els.landmarks,els.handles])el.addEventListener("input",draw);
+  els.learning.addEventListener("change",()=>{
+    state.learningStep = els.learning.checked ? 2 : 6;
+    setStatus(
+      els.learning.checked
+        ? "Mode apprentissage activé : le crâne, la ligne des sourcils et la ligne des yeux sont affichés en priorité."
+        : "Mode apprentissage désactivé.",
+      "success"
+    );
+    draw();
+  });
 
   window.addEventListener("error",(e)=>log("Erreur JavaScript globale",`${e.message} @ ${e.filename}:${e.lineno}`));
   window.addEventListener("unhandledrejection",(e)=>log("Promesse rejetée",e.reason?.stack||e.reason));

@@ -1,5 +1,5 @@
-const CACHE = "loomi-v4-4.0.0";
-const CORE = ["./", "./index.html", "./styles.css?v=4.0.0", "./app.js?v=4.0.0", "./manifest.webmanifest?v=4.0.0", "./icon.svg?v=4.0.0"];
+const CACHE = "loomi-v5-5.0.0";
+const CORE = ["./", "./index.html", "./styles.css?v=5.0.0", "./app.js?v=5.0.0", "./manifest.webmanifest?v=5.0.0", "./icon.svg?v=5.0.0"];
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting()));
 });

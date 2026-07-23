@@ -1,7 +1,7 @@
 {
   "name": "Loomi Engine",
   "short_name": "Loomi",
-  "description": "Assistant de construction de portraits pour artistes.",
+  "description": "Assistant de construction Loomi avec lignes distinctes des sourcils et des yeux.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
