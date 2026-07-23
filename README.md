@@ -1,47 +1,29 @@
-# Loomi Engine IA Alpha
+# Loomi Engine V2
 
-Première version avec détection automatique du visage dans le navigateur.
+Prototype web mobile pour construire automatiquement une tête avec la méthode Loomi.
 
-## Fonctionnalités
+## Fonctions
 
-- Import d’une photo.
-- Détection automatique du visage avec MediaPipe Face Landmarker.
-- Calcul automatique de l’inclinaison des yeux.
-- Construction automatique :
-  - crâne ;
-  - axe du visage ;
-  - ligne des yeux ;
-  - ligne du nez ;
-  - plan latéral ;
-  - mâchoire.
-- Réglage de l’épaisseur et de la transparence.
-- Masquage des guides.
-- Export PNG.
+- Import immédiat d’une photo
+- Détection automatique du visage avec MediaPipe Face Landmarker
+- Construction Loomi automatique
+- Points IA optionnels
+- Poignées de correction manuelle
+- Réglage de l’opacité et de l’épaisseur
+- Export PNG
+- Fonctionnement sur GitHub Pages
 
-## Mise à jour du dépôt GitHub
+## Installation sur GitHub
 
-Dans ton dépôt `loomi-engine-alpha` :
+1. Ouvre le dépôt `loomi-engine-alpha`.
+2. Supprime ou remplace les anciens fichiers `index.html`, `styles.css` et `app.js`.
+3. Téléverse les trois nouveaux fichiers situés à la racine de cette archive.
+4. Valide avec **Commit changes**.
+5. Attends environ 1 à 3 minutes.
+6. Ouvre le site puis recharge la page.
 
-1. Clique sur **Add file**.
-2. Clique sur **Upload files**.
-3. Ajoute les trois fichiers :
-   - `index.html`
-   - `styles.css`
-   - `app.js`
-4. Accepte le remplacement des anciens fichiers.
-5. Clique sur **Commit changes**.
-6. Attends environ une minute, puis recharge ton site GitHub Pages.
+Le fichier `index.html` utilise `?v=2.0.0` pour éviter que le navigateur conserve les anciens fichiers CSS et JavaScript en cache.
 
 ## Connexion Internet
 
-Cette Alpha charge MediaPipe et son modèle depuis Internet. Elle fonctionne donc avec une connexion active.
-
-## Confidentialité
-
-La photo est analysée localement dans le navigateur. Elle n’est pas envoyée vers un serveur Loomi.
-
-
-## Correctif import photo
-
-Cette version charge d’abord l’interface et l’import d’image, puis charge l’IA séparément.
-Ainsi, une erreur ou un ralentissement de MediaPipe ne bloque plus l’affichage de la photo.
+La photo reste dans le navigateur. Une connexion Internet est toutefois nécessaire pour charger la bibliothèque MediaPipe, son moteur WebAssembly et le modèle de détection.
