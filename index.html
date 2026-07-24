@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Loomi Engine 1.0</title>
-<link rel="stylesheet" href="./styles.css?v=1.0.2">
-<link rel="manifest" href="./manifest.webmanifest?v=1.0.2">
+<link rel="stylesheet" href="./styles.css?v=1.0.3">
+<link rel="manifest" href="./manifest.webmanifest?v=1.0.3">
 </head>
 <body>
-<header><div><small>LOOMI METHOD</small><h1>Loomi Engine <b>1.0.2</b></h1></div><div class="head-actions"><button id="learnBtn">🎓 Apprentissage</button><button id="exportBtn" disabled>Exporter PNG</button><span id="badge">Initialisation…</span></div></header>
+<header><div><small>LOOMI METHOD</small><h1>Loomi Engine <b>1.0.3</b></h1></div><div class="head-actions"><button id="learnBtn">🎓 Apprentissage</button><button id="exportBtn" disabled>Exporter PNG</button><span id="badge">Initialisation…</span></div></header>
 <main>
 <aside>
 <h2>Photo</h2>
@@ -48,6 +48,68 @@
 </main>
 <dialog id="manualDialog"><h2>Calibrage manuel</h2><p id="manualPrompt"></p><button id="undoManual">Précédent</button><button id="cancelManual">Annuler</button></dialog>
 <dialog id="learningDialog"><h2>Mode apprentissage</h2><p id="learningText"></p><button id="learningPrev">Précédent</button><button id="learningNext">Suivant</button><button id="learningClose">Fermer</button></dialog>
+
+<script>
+(function(){
+  "use strict";
+  var input=document.getElementById("photoInput");
+  var canvas=document.getElementById("photoCanvas");
+  var stage=document.getElementById("stage");
+  var status=document.getElementById("status");
+  var empty=document.getElementById("empty");
+  if(!input||!canvas)return;
+
+  window.__loomiPhotoLoaded=false;
+
+  function showPhoto(file){
+    if(!file){status.textContent="Aucune photo sélectionnée.";return;}
+    if(file.type && file.type.indexOf("image/")!==0){
+      status.textContent="Ce fichier n’est pas une image.";
+      return;
+    }
+    status.textContent="Ouverture de la photo…";
+    var reader=new FileReader();
+    reader.onerror=function(){status.textContent="Impossible de lire le fichier.";};
+    reader.onload=function(){
+      var img=new Image();
+      img.onerror=function(){status.textContent="Cette image ne peut pas être décodée. Essaie un JPEG ou PNG.";};
+      img.onload=function(){
+        var max=1800;
+        var scale=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));
+        canvas.width=Math.max(1,Math.round(img.naturalWidth*scale));
+        canvas.height=Math.max(1,Math.round(img.naturalHeight*scale));
+        canvas.getContext("2d").drawImage(img,0,0,canvas.width,canvas.height);
+        canvas.style.display="block";
+        stage.classList.remove("empty");
+        if(empty)empty.style.display="none";
+        status.textContent="Photo importée. Chargement du moteur Loomi…";
+        window.__loomiPhotoLoaded=true;
+        window.__loomiFallbackImage=img;
+        window.__loomiFallbackFile=file;
+        window.dispatchEvent(new CustomEvent("loomi-photo-ready",{detail:{image:img,file:file}}));
+      };
+      img.src=reader.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  input.addEventListener("change",function(e){
+    showPhoto(e.target.files && e.target.files[0]);
+  },true);
+
+  if("serviceWorker" in navigator){
+    navigator.serviceWorker.getRegistrations().then(function(regs){
+      regs.forEach(function(reg){reg.unregister();});
+    }).catch(function(){});
+  }
+  if(window.caches){
+    caches.keys().then(function(keys){
+      keys.filter(function(k){return k.indexOf("loomi")===0;}).forEach(function(k){caches.delete(k);});
+    }).catch(function(){});
+  }
+})();
+</script>
+
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh.js" crossorigin="anonymous"></script>
-<script type="module" src="./js/app.js?v=1.0.2"></script>
+<script type="module" src="./js/app.js?v=1.0.3"></script>
 </body></html>
