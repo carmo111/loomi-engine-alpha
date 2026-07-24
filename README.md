@@ -1,4 +1,4 @@
-# Loomi Engine 1.0
+# Loomi Engine 1.0.1
 
 Base modulaire et testable de l’application.
 
@@ -20,3 +20,8 @@ Base modulaire et testable de l’application.
 
 ## Installation
 Copie tous les fichiers à la racine du dépôt GitHub Pages, puis recharge Safari avec Cmd + Shift + R.
+
+## Correctif 1.0.1
+- bouton d’importation Safari fiabilisé ;
+- gestion claire des erreurs JPEG/PNG/WebP/HEIC ;
+- cache renouvelé.

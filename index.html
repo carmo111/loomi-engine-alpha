@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Loomi Engine 1.0</title>
-<link rel="stylesheet" href="./styles.css?v=1.0.0">
-<link rel="manifest" href="./manifest.webmanifest?v=1.0.0">
+<link rel="stylesheet" href="./styles.css?v=1.0.1">
+<link rel="manifest" href="./manifest.webmanifest?v=1.0.1">
 </head>
 <body>
-<header><div><small>LOOMI METHOD</small><h1>Loomi Engine <b>1.0</b></h1></div><div class="head-actions"><button id="learnBtn">🎓 Apprentissage</button><button id="exportBtn" disabled>Exporter PNG</button><span id="badge">Initialisation…</span></div></header>
+<header><div><small>LOOMI METHOD</small><h1>Loomi Engine <b>1.0.1</b></h1></div><div class="head-actions"><button id="learnBtn">🎓 Apprentissage</button><button id="exportBtn" disabled>Exporter PNG</button><span id="badge">Initialisation…</span></div></header>
 <main>
 <aside>
 <h2>Photo</h2>
-<label class="import" for="photoInput">📷 Importer une photo</label><input id="photoInput" type="file" accept="image/*">
+<button id="importBtn" class="import" type="button">📷 Importer une photo</button><input id="photoInput" class="fileInput" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif">
 <p id="status">Importe un portrait.</p>
 <div class="grid"><button id="analyzeBtn" disabled>Analyser</button><button id="manualBtn" disabled>Calibrage manuel</button><button id="resetBtn" disabled>Réinitialiser</button><button id="centerBtn" disabled>Centrer</button></div>
 <h2>Éléments</h2>
@@ -49,5 +49,5 @@
 <dialog id="manualDialog"><h2>Calibrage manuel</h2><p id="manualPrompt"></p><button id="undoManual">Précédent</button><button id="cancelManual">Annuler</button></dialog>
 <dialog id="learningDialog"><h2>Mode apprentissage</h2><p id="learningText"></p><button id="learningPrev">Précédent</button><button id="learningNext">Suivant</button><button id="learningClose">Fermer</button></dialog>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh.js" crossorigin="anonymous"></script>
-<script type="module" src="./js/app.js?v=1.0.0"></script>
+<script type="module" src="./js/app.js?v=1.0.1"></script>
 </body></html>
