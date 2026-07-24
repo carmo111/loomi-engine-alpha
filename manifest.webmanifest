@@ -1,13 +1,13 @@
 {
-  "name": "Loomi Engine V8.2",
-  "short_name": "Loomi V8.2",
+  "name": "Loomi Engine 1.0",
+  "short_name": "Loomi",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#0c0f11",
-  "theme_color": "#101417",
+  "background_color": "#0b0f12",
+  "theme_color": "#11161a",
   "icons": [
     {
-      "src": "icon.svg",
+      "src": "./assets/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml"
     }
