@@ -1,4 +1,4 @@
-# Loomi Engine 1.0.1
+# Loomi Engine 1.0.2
 
 Base modulaire et testable de l’application.
 
@@ -25,3 +25,11 @@ Copie tous les fichiers à la racine du dépôt GitHub Pages, puis recharge Safa
 - bouton d’importation Safari fiabilisé ;
 - gestion claire des erreurs JPEG/PNG/WebP/HEIC ;
 - cache renouvelé.
+
+## Correctif 1.0.2
+
+- le vrai champ de sélection de fichier couvre désormais tout le bouton ;
+- aucun clic JavaScript n’est requis pour ouvrir Photos/Fichiers ;
+- compatibilité Safari renforcée ;
+- un seul événement de chargement de photo ;
+- cache entièrement renouvelé.
