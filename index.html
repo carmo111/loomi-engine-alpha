@@ -5,15 +5,15 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#101417">
   <title>Loomi Engine — Geometry Core</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=1.1.0">
-  <link rel="icon" href="./icon.svg?v=1.1.0" type="image/svg+xml">
-  <link rel="stylesheet" href="./styles.css?v=1.1.0">
+  <link rel="manifest" href="./manifest.webmanifest?v=1.2.0">
+  <link rel="icon" href="./icon.svg?v=1.2.0" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css?v=1.2.0">
 </head>
 <body>
 <header class="topbar">
   <div>
     <p class="eyebrow">LOOMI METHOD · GEOMETRY CORE</p>
-    <h1>Loomi Engine <span>V8</span></h1>
+    <h1>Loomi Engine <span>V8.2</span></h1>
   </div>
   <div id="engineBadge" class="badge loading">Initialisation…</div>
 </header>
@@ -39,7 +39,7 @@
         <label><span>Hauteur du crâne</span><input id="skullHeight" type="range" min="85" max="120" value="103"></label>
         <label><span>Profondeur latérale</span><input id="sideDepth" type="range" min="35" max="78" value="56"></label>
         <label><span>Largeur de mâchoire</span><input id="jawWidth" type="range" min="72" max="118" value="94"></label>
-        <label><span>Longueur du menton</span><input id="chinLength" type="range" min="80" max="125" value="100"></label>
+        <label><span>Position du menton</span><input id="chinLength" type="range" min="65" max="145" value="100"></label>
         <label><span>Déplacement horizontal</span><input id="offsetX" type="range" min="-300" max="300" value="0"></label>
         <label><span>Déplacement vertical</span><input id="offsetY" type="range" min="-300" max="300" value="0"></label>
       </div>
@@ -88,6 +88,7 @@
       <span><i class="brow"></i>Sourcils</span>
       <span><i class="eyes"></i>Yeux</span>
       <span><i class="nose"></i>Nez</span>
+      <span><i class="chin"></i>Menton</span>
       <span><i class="jaw"></i>Mâchoire</span>
     </div>
     <p class="note">Même géométrie dans les deux vues. Les courbes sont calculées en 3D puis projetées sur la photo.</p>
@@ -104,6 +105,6 @@
 </dialog>
 
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh.js" crossorigin="anonymous"></script>
-<script src="./app.js?v=1.1.0" defer></script>
+<script src="./app.js?v=1.2.0" defer></script>
 </body>
 </html>

@@ -10,7 +10,7 @@ const E={
  showHidden:$("showHidden"),showHandles:$("showHandles"),showMesh:$("showMesh")
 };
 const ctx=E.photo.getContext("2d"),pctx=E.preview.getContext("2d");
-const COLORS={skull:"#f2eee4",side:"#9b6cff",brow:"#ff9c52",eyes:"#4db4ff",nose:"#51d19a",mouth:"#ff78a0",jaw:"#ff648f",axis:"#58d9ad",mesh:"#82919a"};
+const COLORS={skull:"#f2eee4",side:"#9b6cff",brow:"#ff9c52",eyes:"#4db4ff",nose:"#51d19a",mouth:"#ff78a0",chin:"#ff4d4d",jaw:"#ff648f",axis:"#58d9ad",mesh:"#82919a"};
 const state={image:null,name:"loomi",mesh:null,ready:false,landmarks:null,fit:null,manual:false,manualPoints:[],drag:null,groupDrag:null};
 const MP="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/";
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -72,9 +72,18 @@ function fitFromLandmarks(lm){
  const yaw=clamp((nose.x-eyes.x)/(eyeSpan*.43),-.95,.95)*rad(42);
  const upper=dist(top,eyes),lower=dist(eyes,chin),pitch=clamp((upper/lower-.72)*.85,-.55,.55);
  const center={x:eyes.x-Math.sin(yaw)*faceW*.055,y:eyes.y-faceH*.22};
- return {center,rx:faceW*.53,ry:faceH*.49,yaw,pitch,roll,
-   eyeY:(eyes.y-center.y)/(faceH*.49),browY:(mid(P(lm,70),P(lm,300)).y-center.y)/(faceH*.49),
-   noseY:(nose.y-center.y)/(faceH*.49),mouthY:(mouth.y-center.y)/(faceH*.49),chinY:(chin.y-center.y)/(faceH*.49),
+ const ry=faceH*.49;
+ const rawEye=(eyes.y-center.y)/ry;
+ const rawBrow=(mid(P(lm,70),P(lm,300)).y-center.y)/ry;
+ const rawNose=(nose.y-center.y)/ry;
+ const rawMouth=(mouth.y-center.y)/ry;
+ const rawChin=(chin.y-center.y)/ry;
+ return {center,rx:faceW*.53,ry,yaw,pitch,roll,
+   eyeY:rawEye-.10,
+   browY:Math.min(rawBrow-.15,rawEye-.20),
+   noseY:rawNose-.03,
+   mouthY:rawMouth,
+   chinY:rawChin+.12,
    anchors:{eyeL,eyeR,nose,chin,templeL,templeR,top,mouth}};
 }
 function fitFromManual(p){
@@ -82,9 +91,17 @@ function fitFromManual(p){
  const roll=Math.atan2(eyeR.y-eyeL.y,eyeR.x-eyeL.x),eyeSpan=dist(eyeL,eyeR),faceW=dist(templeL,templeR),faceH=dist(top,chin);
  const yaw=clamp((nose.x-eyes.x)/(eyeSpan*.43),-.95,.95)*rad(42),pitch=clamp((dist(top,eyes)/dist(eyes,chin)-.72)*.85,-.55,.55);
  const center={x:eyes.x-Math.sin(yaw)*faceW*.055,y:eyes.y-faceH*.22};
- return {center,rx:faceW*.53,ry:faceH*.49,yaw,pitch,roll,
-  eyeY:(eyes.y-center.y)/(faceH*.49),browY:(eyes.y-faceH*.09-center.y)/(faceH*.49),
-  noseY:(nose.y-center.y)/(faceH*.49),mouthY:(mouth.y-center.y)/(faceH*.49),chinY:(chin.y-center.y)/(faceH*.49),
+ const ry=faceH*.49;
+ const rawEye=(eyes.y-center.y)/ry;
+ const rawNose=(nose.y-center.y)/ry;
+ const rawMouth=(mouth.y-center.y)/ry;
+ const rawChin=(chin.y-center.y)/ry;
+ return {center,rx:faceW*.53,ry,yaw,pitch,roll,
+  eyeY:rawEye-.10,
+  browY:rawEye-.25,
+  noseY:rawNose-.03,
+  mouthY:rawMouth,
+  chinY:rawChin+.12,
   anchors:{eyeL,eyeR,nose,chin,templeL,templeR,top,mouth}};
 }
 function rotate(v,yaw,pitch,roll){
@@ -116,7 +133,8 @@ function sideCircle(side,proj){
 }
 function jawCurves(fit,proj){
  const s=settings(),side=Math.sin(fit.yaw)>=0?1:-1;
- const cheekY=clamp(fit.noseY+.12,-.05,.62),chinY=clamp(fit.chinY*s.chinLength,.55,1.35);
+ const cheekY=clamp(fit.noseY+.12,-.05,.62);
+ const chinY=clamp(fit.chinY+(s.chinLength-1)*1.15,.62,1.62);
  const jawTop=.74*s.jawWidth,angleX=.68*s.jawWidth;
  const front=[
   proj.point({x:-jawTop,y:cheekY,z:.18}),proj.point({x:-angleX,y:.70,z:.12}),
@@ -127,7 +145,14 @@ function jawCurves(fit,proj){
   proj.point({x:-jawTop,y:cheekY,z:-.16}),proj.point({x:-angleX,y:.70,z:-.12}),
   proj.point({x:0,y:chinY,z:-.25}),proj.point({x:angleX,y:.70,z:-.12}),proj.point({x:jawTop,y:cheekY,z:-.16})
  ];
- return{front,back,side};
+ const chinGuide=[
+   proj.point({x:-.30,y:chinY-.03,z:.31}),
+   proj.point({x:-.16,y:chinY+.02,z:.34}),
+   proj.point({x:0,y:chinY+.045,z:.36}),
+   proj.point({x:.16,y:chinY+.02,z:.34}),
+   proj.point({x:.30,y:chinY-.03,z:.31})
+ ];
+ return{front,back,chinGuide,side};
 }
 function drawSegmented(ctx,pts,color,width,hidden){
  ctx.save();ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap="round";ctx.lineJoin="round";
@@ -148,7 +173,10 @@ function geometry(c,fit,preview=false){
  drawSegmented(c,latitude(fit.noseY,pr),COLORS.nose,w,s.showHidden);
  drawSegmented(c,latitude(fit.mouthY,pr),COLORS.mouth,w,s.showHidden);
  const axis=meridian(Math.PI/2,pr);drawSegmented(c,axis,COLORS.axis,w,s.showHidden);
- const jaw=jawCurves(fit,pr);drawPolyline(c,jaw.front,COLORS.jaw,w);if(s.showHidden)drawPolyline(c,jaw.back,COLORS.jaw,w,[7,7]);
+ const jaw=jawCurves(fit,pr);
+ drawPolyline(c,jaw.front,COLORS.jaw,w);
+ drawPolyline(c,jaw.chinGuide,COLORS.chin,w);
+ if(s.showHidden)drawPolyline(c,jaw.back,COLORS.jaw,w,[7,7]);
  c.restore();
  return pr;
 }

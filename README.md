@@ -1,4 +1,4 @@
-# Loomi Engine V8.1 — Geometry Core
+# Loomi Engine V8.2 — Geometry Core
 
 Cette version remplace les superpositions plates par une construction géométrique cohérente.
 
@@ -33,3 +33,12 @@ Le moteur utilise une projection orthographique et une tête paramétrique simpl
 - réglages séparés horizontal et vertical ;
 - les poignées suivent le déplacement global ;
 - cache mis à jour.
+
+## Corrections V8.2
+
+- ligne des sourcils relevée au-dessus des yeux ;
+- ligne des yeux replacée sur les yeux ;
+- ligne du nez légèrement remontée ;
+- guide rouge du menton abaissé ;
+- curseur du menton élargi et rendu réellement fonctionnel ;
+- la mâchoire suit maintenant le réglage du menton.
