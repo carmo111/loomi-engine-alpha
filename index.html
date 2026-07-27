@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Loomi Geometry Engine V4</title>
+<title>Loomi Geometry Engine V5</title>
 <style>
 :root{--bg:#090b0d;--panel:#14191d;--panel2:#1d2429;--line:#344047;--text:#f7f8f9;--muted:#9ba7ad;--red:#ff4a2d;--green:#52d59c;--blue:#4cb4ff}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -26,7 +26,7 @@ canvas{display:block;max-width:100%;max-height:100%;touch-action:none}.empty{tex
 </head>
 <body>
 <header>
-<div><small>NEW GEOMETRY CORE</small><h1>Loomi Geometry Engine <b>V4</b></h1></div>
+<div><small>NEW GEOMETRY CORE</small><h1>Loomi Geometry Engine <b>V5</b></h1></div>
 <span id="badge" class="badge">Chargement…</span>
 </header>
 <div class="app">
@@ -57,7 +57,7 @@ canvas{display:block;max-width:100%;max-height:100%;touch-action:none}.empty{tex
 <section class="block">
 <h2>3. Réglages V1</h2>
 <div class="controls">
-<label>Taille du cercle<input id="radius" type="range" min="82" max="125" value="100"></label>
+<label>Taille du cercle<input id="radius" type="range" min="78" max="115" value="88"></label>
 <label>Décalage arrière<input id="back" type="range" min="-20" max="100" value="28"></label>
 <label>Hauteur de la boîte crânienne<input id="lift" type="range" min="-25" max="45" value="12"></label>
 <label>Sommet du crâne<input id="crown" type="range" min="-30" max="35" value="0"></label>
@@ -67,7 +67,7 @@ canvas{display:block;max-width:100%;max-height:100%;touch-action:none}.empty{tex
 </section>
 
 <section class="block">
-<p class="note"><b>Principe V4 :</b> Le moteur classe maintenant la pose en face, trois-quarts léger, trois-quarts prononcé ou profil, puis adapte le rayon, le recul, la hauteur et les axes.</p>
+<p class="note"><b>Principe V5 :</b> Le moteur utilise maintenant un rayon anatomique plus contenu, réduit d’environ 12 %, puis remonte légèrement la sphère selon la pose.</p>
 </section>
 </aside>
 
@@ -186,7 +186,7 @@ function makeData(lm){
  };
 }
 function opts(){return{
- radius:controlNumber("radius",100)/100,
+ radius:controlNumber("radius",88)/100,
  back:controlNumber("back",28)/100,
  lift:controlNumber("lift",12)/100,
  crown:controlNumber("crown",0)/100,
@@ -202,44 +202,47 @@ function geometry(){
  const noseLocal=local(d,d.nose);
  const absYaw=Math.abs(d.yaw);
 
- // Taille de base selon les proportions réelles.
- const rTemples=d.templeSpan*.62;
- const rCheeks=d.cheekSpan*.66;
- const rFace=d.browToChin*.84;
+ // Rayon anatomique V5 :
+ // on limite l'influence de la largeur apparente du visage,
+ // puis on applique une réduction globale d'environ 12 %.
+ const rFromHeight=d.browToChin*.72;
+ const rFromEyes=d.eyeSpan*1.34;
+ const rFromTemples=d.templeSpan*.54;
+ const rFromCheeks=d.cheekSpan*.57;
 
- // Pondération différente selon la pose.
  let rBase;
  if(d.poseType==="face"){
-   rBase=Math.max(rTemples,rCheeks*.98,rFace*.92);
+   rBase=(rFromHeight*.46+rFromEyes*.28+rFromTemples*.18+rFromCheeks*.08);
  }else if(d.poseType==="trois-quarts léger"){
-   rBase=Math.max(rTemples*1.02,rCheeks,rFace*.95);
+   rBase=(rFromHeight*.44+rFromEyes*.25+rFromTemples*.21+rFromCheeks*.10);
  }else if(d.poseType==="trois-quarts prononcé"){
-   rBase=Math.max(rTemples*1.05,rCheeks*1.02,rFace*.98);
+   rBase=(rFromHeight*.42+rFromEyes*.22+rFromTemples*.24+rFromCheeks*.12);
  }else{
-   rBase=Math.max(rTemples*1.08,rCheeks*1.04,rFace);
+   rBase=(rFromHeight*.40+rFromEyes*.18+rFromTemples*.28+rFromCheeks*.14);
  }
- const r=rBase*o.radius;
+
+ const r=rBase*.88*o.radius;
 
  const crownBase=add(d.crown,mul(d.y,-d.eyeToChin*o.crown));
  const crownLocal=local(d,crownBase);
 
  // Décalage arrière adaptatif.
  let backFactor;
- if(d.poseType==="face")backFactor=.04;
- else if(d.poseType==="trois-quarts léger")backFactor=.13;
- else if(d.poseType==="trois-quarts prononcé")backFactor=.24;
- else backFactor=.34;
+ if(d.poseType==="face")backFactor=.025;
+ else if(d.poseType==="trois-quarts léger")backFactor=.11;
+ else if(d.poseType==="trois-quarts prononcé")backFactor=.21;
+ else backFactor=.30;
 
- backFactor+=o.back*.30;
+ backFactor+=o.back*.24;
  const backOffset=d.backSign*r*backFactor;
 
  // Hauteur adaptative. Très faible de face, plus marquée en trois-quarts/profil.
  let liftFactor;
- if(d.poseType==="face")liftFactor=.015;
- else if(d.poseType==="trois-quarts léger")liftFactor=.04;
- else if(d.poseType==="trois-quarts prononcé")liftFactor=.065;
- else liftFactor=.08;
- liftFactor+=o.lift*.18;
+ if(d.poseType==="face")liftFactor=.035;
+ else if(d.poseType==="trois-quarts léger")liftFactor=.06;
+ else if(d.poseType==="trois-quarts prononcé")liftFactor=.082;
+ else liftFactor=.095;
+ liftFactor+=o.lift*.16;
 
  const centerY=crownLocal.y+r-r*liftFactor;
  const center=world(d,backOffset,centerY);
@@ -434,7 +437,7 @@ async function init(){
 E.file.addEventListener("change",e=>importPhoto(e.target.files&&e.target.files[0]));
 E.analyze.addEventListener("click",()=>{setStatus("Clic reçu. Démarrage de l’analyse…","ok");analyze()});
 E.manual.addEventListener("click",()=>{if(!S.data){setStatus("Analyse d’abord le visage.","err");return}S.placing=true;setStatus("Clique sur le vrai sommet du crâne.","ok")});
-E.reset.addEventListener("click",()=>{if(!S.data)return;S.data.crown={...S.data.crownAuto};["radius","back","lift","crown"].forEach((id,i)=>{const el=E[id]||document.getElementById(id);if(el)el.value=[100,28,12,0][i]});draw();setStatus("Réglages remis à zéro.","ok")});
+E.reset.addEventListener("click",()=>{if(!S.data)return;S.data.crown={...S.data.crownAuto};["radius","back","lift","crown"].forEach((id,i)=>{const el=E[id]||document.getElementById(id);if(el)el.value=[88,18,10,0][i]});draw();setStatus("Réglages remis à zéro.","ok")});
 E.export.addEventListener("click",()=>{if(!S.img)return;draw();const a=document.createElement("a");a.download=S.name+"-geometry-v1.png";a.href=E.canvas.toDataURL("image/png");a.click()});
 ["sphere","brow","center","equator","handles","radius","back","lift","crown","opacity","stroke"].forEach(id=>bindInput(id,draw));
 init();

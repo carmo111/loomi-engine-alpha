@@ -1,15 +1,14 @@
-# Loomi Geometry Engine V4
+# Loomi Geometry Engine V5
 
-Nouvelle logique adaptative selon l'orientation du visage.
+Objectif principal : corriger un diamètre trop grand.
 
-## Nouveautés
-- détection de pose : face, trois-quarts léger, trois-quarts prononcé, profil ;
-- estimation du yaw renforcée par l'asymétrie du visage ;
-- rayon recalculé selon tempes, pommettes et hauteur sourcils-menton ;
-- décalage arrière différent selon la pose ;
-- hauteur différente selon la pose ;
-- axe central presque vertical de face, plus volumique en trois-quarts ;
-- ligne des sourcils raccourcie du côté fuyant ;
-- indication visible de la pose détectée.
+## Changements
+- rayon réduit d'environ 12 % ;
+- calcul du rayon moins dépendant de la largeur apparente du visage ;
+- pondération basée sur hauteur sourcils-menton, yeux, tempes et pommettes ;
+- sphère légèrement remontée ;
+- décalage arrière conservé mais mieux contenu ;
+- pose adaptative de la V4 conservée ;
+- cercle toujours parfaitement rond.
 
-Le plan latéral et la mâchoire restent volontairement absents.
+Le plan latéral et la mâchoire restent absents.
