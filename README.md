@@ -1,5 +1,17 @@
-# Loomi Engine V3.4.1 Analysis Fix
+# Loomi Geometry Engine V1
 
-Correction d’une erreur JavaScript dans le calcul du crâne : la ligne des sourcils était utilisée avant son initialisation, ce qui interrompait le rendu juste après la détection du visage.
+Nouvelle base indépendante.
 
-Les améliorations de la V3.4 sont conservées : sommet du crâne, base du nez, milieu des sourcils et ligne front/cheveux.
+## Objectif de cette version
+Construire et valider uniquement :
+- la grande sphère crânienne ;
+- son sommet ;
+- son décalage vers l'arrière de la tête ;
+- l'axe central ;
+- l'axe des sourcils ;
+- l'équateur de la sphère.
+
+Le plan latéral et la mâchoire ne sont volontairement pas inclus. Ils seront construits après validation du crâne.
+
+## Installation
+Place `index.html` à la racine du dépôt GitHub Pages. Aucun Service Worker ni cache applicatif.
