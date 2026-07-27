@@ -1,6 +1,15 @@
-# Loomi 3D Mannequin V1
+# Loomi 3D Skull V1
 
-Version mobile simplifiée : import photo, déplacement au doigt, rotation 3D, redimensionnement, préréglages face/3-4/profil/dos, réglage du crâne et de la mâchoire, export PNG.
+Version volumique du mannequin Loomis.
 
-## GitHub Pages
-Dépose `index.html` à la racine du dépôt, puis active Settings > Pages > Deploy from a branch > main / root.
+## Ce qui change
+- crâne réellement modélisé en 3D ;
+- plans latéraux en volume ;
+- mâchoire en volume ;
+- repères courbés et attachés au crâne ;
+- rotation 360° cohérente ;
+- déplacement, redimensionnement et export PNG ;
+- import de photographie.
+
+## Mise à jour du site GitHub Pages
+Remplace le fichier `index.html` actuel du dépôt `loomi-engine-alpha` par celui de cette archive.
