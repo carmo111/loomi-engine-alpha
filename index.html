@@ -1,10 +1,324 @@
-<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Loomi Engine V3</title>
-<style>body{margin:0;background:#0b0e10;color:#fff;font-family:Arial,sans-serif}header{padding:16px 20px;background:#151a1e;border-bottom:1px solid #333;display:flex;justify-content:space-between;align-items:center}h1{margin:0;font-size:24px}b{color:#e8b25e}.app{display:grid;grid-template-columns:280px 1fr 320px;min-height:calc(100vh - 70px)}aside{padding:16px;background:#151a1e}.work{padding:12px;background:#080a0c}.stage{height:75vh;display:flex;align-items:center;justify-content:center;border:1px solid #333;border-radius:12px;background:#050607;position:relative;overflow:hidden}canvas{max-width:100%;max-height:100%}.file{position:relative;display:block;background:#e8b25e;color:#15110b;padding:14px;border-radius:10px;text-align:center;font-weight:bold;cursor:pointer}.file input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}button{padding:10px;border-radius:8px;border:1px solid #555;background:#222;color:#fff;cursor:pointer}button:disabled{opacity:.4}.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.status{background:#222;padding:10px;border-left:4px solid #e8b25e;border-radius:8px;font-size:13px}.settings label,.checks label{display:block;margin:9px 0;font-size:13px}.settings input[type=range]{width:100%}.badge{padding:8px 12px;border:1px solid #555;border-radius:999px}.ok{color:#54d5a0}.err{color:#ff8080}.loader{position:absolute;inset:0;background:#000b;display:flex;align-items:center;justify-content:center}.hidden{display:none}.right{border-left:1px solid #333}.pose{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.pose div{background:#222;padding:8px;text-align:center;border-radius:8px}.pose strong{display:block;font-size:18px}@media(max-width:1000px){.app{grid-template-columns:260px 1fr}.right{grid-column:1/-1}}@media(max-width:700px){.app{display:block}.stage{height:60vh}}</style></head><body>
-<header><h1>Loomi Engine <b>V3</b></h1><span id="badge" class="badge">Chargement…</span></header>
-<div class="app"><aside><h3>Photo</h3><label class="file">📷 Importer une photo<input id="file" type="file" accept="image/*"></label><p id="status" class="status">Choisis une photo.</p><div class="grid"><button id="analyze" disabled>Analyser</button><button id="manual" disabled>Mode manuel</button><button id="reset" disabled>Réinitialiser</button><button id="export" disabled>Exporter PNG</button></div><h3>Éléments</h3><div class="checks"><label><input id="skull" type="checkbox" checked> Crâne</label><label><input id="side" type="checkbox" checked> Plan latéral</label><label><input id="jaw" type="checkbox" checked> Mâchoire</label><label><input id="axis" type="checkbox" checked> Axe</label><label><input id="eyes" type="checkbox" checked> Yeux</label><label><input id="nose" type="checkbox" checked> Nez</label><label><input id="mouth" type="checkbox" checked> Bouche</label></div><h3>Réglages</h3><div class="settings"><label>Opacité<input id="opacity" type="range" min="20" max="100" value="90"></label><label>Épaisseur<input id="width" type="range" min="1" max="7" value="3"></label><label>Taille<input id="scale" type="range" min="70" max="140" value="100"></label><label>Horizontal<input id="ox" type="range" min="-300" max="300" value="0"></label><label>Vertical<input id="oy" type="range" min="-300" max="300" value="0"></label></div></aside>
-<section class="work"><div class="stage"><canvas id="canvas" width="1" height="1"></canvas><div id="empty">Importe une photo pour commencer.</div><div id="loader" class="loader hidden">Analyse du visage…</div></div></section>
-<aside class="right"><h3>Orientation</h3><div class="pose"><div>Lacet<strong id="yaw">0°</strong></div><div>Tangage<strong id="pitch">0°</strong></div><div>Roulis<strong id="roll">0°</strong></div></div><p style="color:#aaa;font-size:13px">Le mode manuel demande 8 clics : yeux, nez, menton, tempes, sommet et bouche.</p></aside></div>
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Loomi Engine V3.1 Clean</title>
+<style>
+:root{--bg:#090c0e;--panel:#151a1e;--panel2:#20272c;--line:#354047;--text:#f6f7f8;--muted:#9ca7ad;--gold:#e8b25e;--green:#57d7a2;--red:#ff7878}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+header{min-height:72px;padding:12px 18px;background:#11161a;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px}
+h1{margin:0;font-size:23px}h1 b{color:var(--gold)}header small{display:block;color:var(--gold);font-weight:800;letter-spacing:.14em;margin-bottom:3px}
+.badge{padding:8px 12px;border:1px solid #4b5860;border-radius:999px;font-size:12px}.badge.ok{color:var(--green);border-color:#337b5b}.badge.err{color:#ff9d9d;border-color:#7a4242}
+.app{display:grid;grid-template-columns:300px minmax(0,1fr) 320px;min-height:calc(100vh - 72px)}
+aside{background:var(--panel);padding:16px;overflow:auto;border-right:1px solid var(--line)}aside.right{border-right:0;border-left:1px solid var(--line)}
+section.block+section.block{border-top:1px solid var(--line);margin-top:16px;padding-top:16px}h2{font-size:15px;margin:0 0 11px}
+.file{position:relative;display:block}.file span{display:block;background:var(--gold);color:#17120b;padding:14px;border-radius:10px;text-align:center;font-weight:850;cursor:pointer}.file input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+button{border:1px solid #465159;background:#20272c;color:#fff;border-radius:9px;padding:10px 11px;cursor:pointer}button:disabled{opacity:.38;cursor:not-allowed}.primary{background:var(--gold);color:#17120b;border-color:transparent;font-weight:850}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.status{font-size:12px;line-height:1.45;background:var(--panel2);border-left:4px solid var(--gold);padding:10px;border-radius:8px}.status.ok{border-color:var(--green)}.status.err{border-color:var(--red)}
+.checks{display:grid;gap:8px}.settings{display:grid;gap:9px}.settings label{font-size:12px}.settings input[type=range]{width:100%;margin-top:4px}
+.workspace{padding:10px;display:flex;flex-direction:column;background:#07090b;min-width:0}.stage{position:relative;flex:1;min-height:600px;border:1px solid var(--line);border-radius:14px;background:#030405;display:flex;align-items:center;justify-content:center;overflow:hidden}
+canvas{display:block;max-width:100%;max-height:100%;touch-action:none}.empty{text-align:center;color:var(--muted);padding:30px}.empty strong{display:block;color:#fff;font-size:21px;margin-bottom:7px}
+.loader,.manualOverlay{position:absolute;inset:0;background:#020304d9;display:flex;align-items:center;justify-content:center;padding:18px}.loader[hidden],.manualOverlay[hidden]{display:none}
+.loaderBox,.manualCard{background:#151a1e;border:1px solid #465159;border-radius:14px;padding:18px;max-width:420px;width:100%;text-align:center}.spin{width:28px;height:28px;border:3px solid #465159;border-top-color:var(--gold);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 10px}@keyframes spin{to{transform:rotate(360deg)}}
+.manualCard h3{margin:0 0 7px}.manualCard p{color:#c5ccd0}.progress{height:8px;background:#2a3237;border-radius:999px;overflow:hidden;margin:12px 0}.progress span{display:block;height:100%;width:0;background:var(--gold)}
+.manualActions{display:flex;justify-content:center;gap:8px}.hint{text-align:center;color:var(--muted);font-size:12px;margin:8px 0 0}
+#preview{width:100%;aspect-ratio:1;border:1px solid var(--line);border-radius:12px;background:radial-gradient(circle,#263036,#090b0d 72%)}.pose{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:8px}.pose div{background:var(--panel2);border-radius:8px;padding:8px;text-align:center;font-size:10px;color:var(--muted)}.pose b{display:block;color:#fff;font-size:17px}
+.legend{font-size:12px;color:var(--muted);line-height:1.55}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+@media(max-width:1080px){.app{grid-template-columns:285px 1fr}.right{grid-column:1/-1;border-left:0!important;border-top:1px solid var(--line)}}@media(max-width:720px){header{align-items:flex-start}.app{display:block}.stage{min-height:62vh}aside{border:0;border-bottom:1px solid var(--line)}}
+</style>
+</head>
+<body>
+<header>
+<div><small>LOOMI METHOD</small><h1>Loomi Engine <b>V3.1 Clean</b></h1></div>
+<span id="badge" class="badge">Chargement du moteur…</span>
+</header>
+
+<div class="app">
+<aside>
+<section class="block">
+<h2>1. Photo</h2>
+<label class="file"><span>📷 Importer une photo</span><input id="file" type="file" accept="image/*"></label>
+<p id="status" class="status">Choisis un portrait net.</p>
+<div class="grid">
+<button id="analyze" class="primary" disabled>Analyser</button>
+<button id="manual" disabled>Mode manuel</button>
+<button id="reset" disabled>Réinitialiser</button>
+<button id="export" disabled>Exporter PNG</button>
+</div>
+</section>
+
+<section class="block">
+<h2>2. Construction</h2>
+<div class="checks">
+<label><input id="skull" type="checkbox" checked> Masse du crâne</label>
+<label><input id="side" type="checkbox" checked> Plan latéral</label>
+<label><input id="jaw" type="checkbox" checked> Bloc de mâchoire</label>
+<label><input id="axis" type="checkbox" checked> Axe central</label>
+<label><input id="brow" type="checkbox" checked> Ligne des sourcils</label>
+<label><input id="eyes" type="checkbox" checked> Ligne des yeux</label>
+<label><input id="nose" type="checkbox" checked> Ligne du nez</label>
+<label><input id="mouth" type="checkbox" checked> Ligne de bouche</label>
+</div>
+</section>
+
+<section class="block">
+<h2>3. Ajustements</h2>
+<div class="settings">
+<label>Opacité<input id="opacity" type="range" min="20" max="100" value="92"></label>
+<label>Épaisseur<input id="width" type="range" min="1" max="7" value="3"></label>
+<label>Taille générale<input id="scale" type="range" min="78" max="128" value="100"></label>
+<label>Largeur du crâne<input id="skullWidth" type="range" min="82" max="125" value="100"></label>
+<label>Hauteur du crâne<input id="skullHeight" type="range" min="82" max="125" value="100"></label>
+<label>Plan latéral<input id="sideSize" type="range" min="65" max="130" value="100"></label>
+<label>Largeur mâchoire<input id="jawWidth" type="range" min="75" max="125" value="100"></label>
+<label>Horizontal<input id="ox" type="range" min="-320" max="320" value="0"></label>
+<label>Vertical<input id="oy" type="range" min="-320" max="320" value="0"></label>
+</div>
+</section>
+</aside>
+
+<main class="workspace">
+<div id="stage" class="stage">
+<canvas id="canvas" width="1" height="1"></canvas>
+<div id="empty" class="empty"><strong>Une structure claire avant les détails</strong>Importe une photo pour commencer.</div>
+<div id="loader" class="loader" hidden><div class="loaderBox"><div class="spin"></div>Analyse du visage…</div></div>
+<div id="manualOverlay" class="manualOverlay" hidden>
+<div class="manualCard">
+<h3>Calibrage manuel</h3>
+<p id="manualPrompt">Clique sur l’œil gauche de la personne.</p>
+<div class="progress"><span id="manualProgress"></span></div>
+<div id="manualCount">Point 1 sur 8</div>
+<div class="manualActions"><button id="undo">Précédent</button><button id="cancel">Annuler</button></div>
+</div>
+</div>
+</div>
+<p class="hint">Pendant le calibrage, ferme la fiche puis clique directement sur la photo. Les points apparaissent en jaune.</p>
+</main>
+
+<aside class="right">
+<section class="block">
+<h2>Aperçu de la construction</h2>
+<canvas id="preview" width="600" height="600"></canvas>
+<div class="pose"><div>Lacet<b id="yaw">0°</b></div><div>Tangage<b id="pitch">0°</b></div><div>Roulis<b id="roll">0°</b></div></div>
+</section>
+<section class="block">
+<h2>Logique Loomis</h2>
+<p class="legend">
+<span class="dot" style="background:#f3efe4"></span>Masse du crâne<br>
+<span class="dot" style="background:#9d6cff"></span>Plan latéral<br>
+<span class="dot" style="background:#ff759f"></span>Mâchoire<br>
+<span class="dot" style="background:#54d5a0"></span>Axe central<br>
+<span class="dot" style="background:#4db4ff"></span>Repères du visage
+</p>
+</section>
+</aside>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh.js"></script>
 <script>
-(()=>{const $=id=>document.getElementById(id),E={file:$('file'),canvas:$('canvas'),empty:$('empty'),status:$('status'),badge:$('badge'),analyze:$('analyze'),manual:$('manual'),reset:$('reset'),export:$('export'),loader:$('loader'),yaw:$('yaw'),pitch:$('pitch'),roll:$('roll')};['skull','side','jaw','axis','eyes','nose','mouth','opacity','width','scale','ox','oy'].forEach(id=>E[id]=$(id));const c=E.canvas.getContext('2d');let img=null,name='loomi',mesh=null,ready=false,fit=null,manual=false,pts=[];const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),mid=(a,b)=>({x:(a.x+b.x)/2,y:(a.y+b.y)/2}),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);function status(t,cls=''){E.status.textContent=t;E.status.className='status '+cls}function enable(){[E.analyze,E.manual,E.reset,E.export].forEach(b=>b.disabled=false)}function build(a){const eyes=mid(a.el,a.er),fw=dist(a.tl,a.tr),fh=dist(a.top,a.ch),es=dist(a.el,a.er),roll=Math.atan2(a.er.y-a.el.y,a.er.x-a.el.x),yaw=clamp((a.no.x-eyes.x)/(es*.45),-.9,.9)*.7,pitch=clamp((dist(a.top,eyes)/Math.max(1,dist(eyes,a.ch))-.72)*.8,-.5,.5),center={x:eyes.x,y:eyes.y-fh*.22};return{a,center,rx:fw*.53,ry:fh*.49,yaw,pitch,roll,eye:(eyes.y-center.y)/(fh*.49),nose:(a.no.y-center.y)/(fh*.49),mouth:(a.mo.y-center.y)/(fh*.49),chin:(a.ch.y-center.y)/(fh*.49)}}function fromLM(l){const P=i=>({x:l[i].x*E.canvas.width,y:l[i].y*E.canvas.height});return build({el:mid(P(33),P(133)),er:mid(P(362),P(263)),no:P(1),ch:P(152),tl:P(234),tr:P(454),top:P(10),mo:P(13)})}function rot(v,y,p,r){let{x,y:yy,z}=v,co=Math.cos(y),si=Math.sin(y);[x,z]=[co*x+si*z,-si*x+co*z];co=Math.cos(p);si=Math.sin(p);[yy,z]=[co*yy-si*z,si*yy+co*z];co=Math.cos(r);si=Math.sin(r);[x,yy]=[co*x-si*yy,si*x+co*yy];return{x,y:yy,z}}function P(v){const s=+E.scale.value/100,q=rot({x:v.x*fit.rx*s,y:v.y*fit.ry*s,z:v.z*fit.rx*.9*s},fit.yaw,fit.pitch,fit.roll);return{x:fit.center.x+q.x+(+E.ox.value),y:fit.center.y+q.y+(+E.oy.value),z:q.z}}function path(points,color,dash=[]){c.save();c.strokeStyle=color;c.lineWidth=+E.width.value;c.globalAlpha=+E.opacity.value/100;c.setLineDash(dash);c.beginPath();points.forEach((p,i)=>i?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y));c.stroke();c.restore()}function ring(y,color){const r=Math.sqrt(Math.max(.02,1-y*y)),a=[];for(let i=0;i<=100;i++){const t=i/100*Math.PI*2;a.push(P({x:r*Math.cos(t),y,z:r*Math.sin(t)}))}path(a,color)}function draw(){if(!img)return;c.clearRect(0,0,E.canvas.width,E.canvas.height);c.drawImage(img,0,0,E.canvas.width,E.canvas.height);if(!fit)return;if(E.skull.checked){let a=[];for(let i=0;i<=100;i++){const t=i/100*Math.PI*2;a.push(P({x:Math.cos(t),y:Math.sin(t),z:0}))}path(a,'#f2eee4');ring(0,'#f2eee4')}if(E.side.checked){let a=[];const d=Math.sin(fit.yaw)>=0?.55:-.55,r=Math.sqrt(1-d*d);for(let i=0;i<=100;i++){const t=i/100*Math.PI*2;a.push(P({x:d,y:r*Math.cos(t),z:r*Math.sin(t)}))}path(a,'#9d6cff')}if(E.axis.checked){let a=[];for(let i=0;i<=100;i++){const t=(i/100-.5)*Math.PI;a.push(P({x:Math.sin(t),y:Math.cos(t),z:0}))}path(a,'#54d5a0')}if(E.eyes.checked)ring(fit.eye,'#4db4ff');if(E.nose.checked)ring(fit.nose,'#54d5a0');if(E.mouth.checked)ring(fit.mouth,'#ff759f');if(E.jaw.checked)path([P({x:-.72,y:.15,z:.15}),P({x:-.62,y:.72,z:.12}),P({x:0,y:fit.chin+.1,z:.3}),P({x:.62,y:.72,z:.12}),P({x:.72,y:.15,z:.15})],'#ff759f');E.yaw.textContent=Math.round(fit.yaw*180/Math.PI)+'°';E.pitch.textContent=Math.round(fit.pitch*180/Math.PI)+'°';E.roll.textContent=Math.round(fit.roll*180/Math.PI)+'°'}E.file.onchange=e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const r=new FileReader;r.onerror=()=>status('Impossible de lire la photo.','err');r.onload=()=>{const im=new Image;im.onerror=()=>status('Format non pris en charge. Essaie JPEG ou PNG.','err');im.onload=()=>{img=im;name=(f.name||'loomi').replace(/\.[^.]+$/,'');const s=Math.min(1,1800/Math.max(im.naturalWidth,im.naturalHeight));E.canvas.width=Math.round(im.naturalWidth*s);E.canvas.height=Math.round(im.naturalHeight*s);E.empty.style.display='none';enable();status('Photo importée. Clique sur Analyser.','ok');draw()};im.src=r.result};r.readAsDataURL(f)};E.analyze.onclick=async()=>{if(!ready)return status('Moteur non prêt. Utilise le mode manuel.','err');E.loader.classList.remove('hidden');try{await mesh.send({image:img})}catch(e){E.loader.classList.add('hidden');status('Analyse impossible. Utilise le mode manuel.','err')}};E.manual.onclick=()=>{manual=true;pts=[];status('Mode manuel : clique œil gauche, œil droit, nez, menton, tempe gauche, tempe droite, sommet, bouche.')};E.canvas.onclick=e=>{if(!manual)return;const r=E.canvas.getBoundingClientRect(),p={x:(e.clientX-r.left)*E.canvas.width/r.width,y:(e.clientY-r.top)*E.canvas.height/r.height};pts.push(p);if(pts.length===8){manual=false;fit=build({el:pts[0],er:pts[1],no:pts[2],ch:pts[3],tl:pts[4],tr:pts[5],top:pts[6],mo:pts[7]});status('Calibrage manuel terminé.','ok');draw()}else status('Point '+(pts.length+1)+' sur 8')};E.reset.onclick=()=>{fit=null;draw()};E.export.onclick=()=>{draw();const a=document.createElement('a');a.download=name+'-loomi-v3.png';a.href=E.canvas.toDataURL();a.click()};['skull','side','jaw','axis','eyes','nose','mouth','opacity','width','scale','ox','oy'].forEach(id=>E[id].oninput=draw);async function init(){try{let n=0;while(!window.FaceMesh&&n++<100)await new Promise(r=>setTimeout(r,100));if(!window.FaceMesh)throw 0;mesh=new FaceMesh({locateFile:f=>'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/'+f});mesh.setOptions({maxNumFaces:1,refineLandmarks:true,minDetectionConfidence:.45,minTrackingConfidence:.45});mesh.onResults(res=>{E.loader.classList.add('hidden');if(!res.multiFaceLandmarks||!res.multiFaceLandmarks.length)return status('Aucun visage détecté.','err');fit=fromLM(res.multiFaceLandmarks[0]);status('Analyse terminée.','ok');draw()});ready=true;E.badge.textContent='Moteur prêt';E.badge.className='badge ok'}catch(e){E.badge.textContent='Mode manuel';E.badge.className='badge err'}}init()})();
-</script></body></html>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const E={file:$("file"),canvas:$("canvas"),preview:$("preview"),empty:$("empty"),status:$("status"),badge:$("badge"),analyze:$("analyze"),manual:$("manual"),reset:$("reset"),export:$("export"),loader:$("loader"),overlay:$("manualOverlay"),prompt:$("manualPrompt"),progress:$("manualProgress"),count:$("manualCount"),undo:$("undo"),cancel:$("cancel"),yaw:$("yaw"),pitch:$("pitch"),roll:$("roll")};
+["skull","side","jaw","axis","brow","eyes","nose","mouth","opacity","width","scale","skullWidth","skullHeight","sideSize","jawWidth","ox","oy"].forEach(id=>E[id]=$(id));
+const ctx=E.canvas.getContext("2d"),pctx=E.preview.getContext("2d");
+const S={image:null,name:"loomi",mesh:null,ready:false,fit:null,manual:false,manualPoints:[]};
+const prompts=["l’œil gauche de la personne","l’œil droit de la personne","la pointe du nez","le bas du menton","la tempe gauche","la tempe droite","le sommet du crâne","le centre de la bouche"];
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const mid=(a,b)=>({x:(a.x+b.x)/2,y:(a.y+b.y)/2});
+const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+const add=(a,b)=>({x:a.x+b.x,y:a.y+b.y});
+const sub=(a,b)=>({x:a.x-b.x,y:a.y-b.y});
+const mul=(a,s)=>({x:a.x*s,y:a.y*s});
+const norm=v=>{const d=Math.hypot(v.x,v.y)||1;return{x:v.x/d,y:v.y/d}};
+const perp=v=>({x:-v.y,y:v.x});
+const deg=r=>Math.round(r*180/Math.PI)+"°";
+
+function setStatus(text,type=""){E.status.textContent=text;E.status.className="status "+type}
+function enable(){[E.analyze,E.manual,E.reset,E.export].forEach(b=>b.disabled=false)}
+function options(){return{opacity:+E.opacity.value/100,width:+E.width.value,scale:+E.scale.value/100,sw:+E.skullWidth.value/100,sh:+E.skullHeight.value/100,side:+E.sideSize.value/100,jaw:+E.jawWidth.value/100,ox:+E.ox.value,oy:+E.oy.value}}
+function localPoint(f,x,y){return add(add(f.origin,mul(f.xAxis,x)),mul(f.yAxis,y))}
+function shifted(p,o){return{x:p.x+o.ox,y:p.y+o.oy}}
+
+function build(a){
+ const eyeCenter=mid(a.el,a.er), eyeSpan=dist(a.el,a.er), templeSpan=dist(a.tl,a.tr), faceH=dist(a.top,a.ch);
+ const xAxis=norm(sub(a.er,a.el)), yAxis=perp(xAxis);
+ if(yAxis.y<0){yAxis.x*=-1;yAxis.y*=-1}
+ const noseOffset=dot(sub(a.no,eyeCenter),xAxis);
+ const roll=Math.atan2(xAxis.y,xAxis.x);
+ const yaw=clamp(noseOffset/(eyeSpan*.55),-.95,.95);
+ const eyeToChin=dot(sub(a.ch,eyeCenter),yAxis);
+ const topToEye=dot(sub(eyeCenter,a.top),yAxis);
+ const pitch=clamp((topToEye/Math.max(1,eyeToChin)-.48)*.9,-.45,.45);
+ const skullW=Math.max(templeSpan*1.06,eyeSpan*2.05);
+ const skullH=Math.max(faceH*.67,skullW*.92);
+ const origin=add(eyeCenter,mul(yAxis,-skullH*.20));
+ const toLocal=p=>({x:dot(sub(p,origin),xAxis),y:dot(sub(p,origin),yAxis)});
+ const L={el:toLocal(a.el),er:toLocal(a.er),no:toLocal(a.no),ch:toLocal(a.ch),tl:toLocal(a.tl),tr:toLocal(a.tr),top:toLocal(a.top),mo:toLocal(a.mo)};
+ return{a,origin,xAxis,yAxis,skullW,skullH,yaw,pitch,roll,L};
+}
+function dot(a,b){return a.x*b.x+a.y*b.y}
+function fromLandmarks(lm){
+ const P=i=>({x:lm[i].x*E.canvas.width,y:lm[i].y*E.canvas.height});
+ return build({el:mid(P(33),P(133)),er:mid(P(362),P(263)),no:P(1),ch:P(152),tl:P(234),tr:P(454),top:P(10),mo:P(13)});
+}
+function fromManual(p){return build({el:p[0],er:p[1],no:p[2],ch:p[3],tl:p[4],tr:p[5],top:p[6],mo:p[7]})}
+
+function stroke(c,draw,color,w,alpha=1,dash=[]){
+ c.save();c.strokeStyle=color;c.lineWidth=w;c.globalAlpha=alpha;c.lineCap="round";c.lineJoin="round";c.setLineDash(dash);c.beginPath();draw(c);c.stroke();c.restore();
+}
+function ellipse(c,center,rx,ry,angle,color,w,alpha,dash=[]){
+ stroke(c,g=>g.ellipse(center.x,center.y,Math.max(1,rx),Math.max(1,ry),angle,0,Math.PI*2),color,w,alpha,dash);
+}
+function curve(c,a,m,b,color,w,alpha,dash=[]){
+ stroke(c,g=>{g.moveTo(a.x,a.y);g.quadraticCurveTo(m.x,m.y,b.x,b.y)},color,w,alpha,dash);
+}
+function poly(c,pts,color,w,alpha){
+ stroke(c,g=>{pts.forEach((p,i)=>i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y))},color,w,alpha);
+}
+function geometry(f,o){
+ const scale=o.scale, sw=f.skullW*o.sw*scale, sh=f.skullH*o.sh*scale;
+ const center=shifted(f.origin,o), angle=f.roll;
+ const sideSign=f.yaw>=0?1:-1;
+ const sideCenter=shifted(localPoint(f,sideSign*sw*.34,-sh*.01),o);
+ const sideRx=sw*.22*o.side, sideRy=sh*.34*o.side;
+ const browY=(f.L.el.y+f.L.er.y)/2-sh*.11;
+ const eyeY=(f.L.el.y+f.L.er.y)/2;
+ const noseY=f.L.no.y;
+ const mouthY=f.L.mo.y;
+ const chinY=f.L.ch.y;
+ const left=x=>shifted(localPoint(f,-sw*x,0),o), right=x=>shifted(localPoint(f,sw*x,0),o);
+ const contour=(y,curveAmount)=>{
+   const half=Math.sqrt(Math.max(.05,1-Math.pow((y+sh*.02)/(sh*.52),2)))*sw*.5;
+   const a=shifted(localPoint(f,-half,y),o), b=shifted(localPoint(f,half,y),o);
+   const m=shifted(localPoint(f,f.yaw*sw*curveAmount,y-sh*.035*Math.abs(f.yaw)),o);
+   return[a,m,b];
+ };
+ const top=shifted(localPoint(f,0,-sh*.50),o);
+ const chin=shifted(localPoint(f,0,chinY),o);
+ const nose=shifted(localPoint(f,f.L.no.x,noseY),o);
+ const mouth=shifted(localPoint(f,f.L.mo.x,mouthY),o);
+ const jawL=shifted(localPoint(f,-sw*.37*o.jaw,chinY-sh*.26),o);
+ const jawR=shifted(localPoint(f,sw*.37*o.jaw,chinY-sh*.26),o);
+ const templeL=shifted(localPoint(f,-sw*.48,sh*.02),o);
+ const templeR=shifted(localPoint(f,sw*.48,sh*.02),o);
+ return{center,sw,sh,angle,sideCenter,sideRx,sideRy,sideSign,brow:contour(browY,.18),eyes:contour(eyeY,.22),noseLine:contour(noseY,.28),mouthLine:contour(mouthY,.34),top,chin,nose,mouth,jawL,jawR,templeL,templeR};
+}
+function render(c,preview=false){
+ if(!S.fit)return;
+ const o=options();
+ let f=S.fit;
+ let saved=null;
+ if(preview){
+   saved={canvas:E.canvas,origin:f.origin,skullW:f.skullW,skullH:f.skullH,a:f.a,L:f.L};
+   const sc=Math.min(E.preview.width/(f.skullW*2.25),E.preview.height/(f.skullH*2.15));
+   const clone={...f,origin:{x:E.preview.width/2,y:E.preview.height*.46},skullW:f.skullW*sc,skullH:f.skullH*sc};
+   f=clone;o.ox=0;o.oy=0;o.scale=1;
+ }
+ const g=geometry(f,o),w=o.width*(preview?1.25:1),a=o.opacity;
+ if(E.skull.checked){
+   ellipse(c,g.center,g.sw*.50,g.sh*.50,g.angle,"#f3efe4",w,a);
+   ellipse(c,g.center,g.sw*.50,g.sh*.18,g.angle,"#f3efe4",w,a*.72,[7,7]);
+ }
+ if(E.side.checked){
+   ellipse(c,g.sideCenter,g.sideRx,g.sideRy,g.angle,"#9d6cff",w,a);
+ }
+ if(E.axis.checked){
+   curve(c,g.top,g.nose,g.chin,"#54d5a0",w,a);
+ }
+ if(E.brow.checked)curve(c,...g.brow,"#ffad5b",w,a);
+ if(E.eyes.checked)curve(c,...g.eyes,"#4db4ff",w,a);
+ if(E.nose.checked)curve(c,...g.noseLine,"#54d5a0",w,a);
+ if(E.mouth.checked)curve(c,...g.mouthLine,"#ff759f",w,a);
+ if(E.jaw.checked){
+   const jawMidL=mid(g.templeL,g.jawL),jawMidR=mid(g.templeR,g.jawR);
+   stroke(c,q=>{q.moveTo(g.templeL.x,g.templeL.y);q.quadraticCurveTo(jawMidL.x-shiftY(f,8),jawMidL.y,g.jawL.x,g.jawL.y);q.quadraticCurveTo(g.chin.x-g.sw*.20,g.chin.y,g.chin.x,g.chin.y);q.quadraticCurveTo(g.chin.x+g.sw*.20,g.chin.y,g.jawR.x,g.jawR.y);q.quadraticCurveTo(jawMidR.x+shiftY(f,8),jawMidR.y,g.templeR.x,g.templeR.y)},"#ff759f",w,a);
+ }
+}
+function shiftY(f,n){return f.yAxis.x*n}
+function drawManualPoints(){
+ if(!S.manualPoints.length)return;
+ const o=options();
+ S.manualPoints.forEach((p,i)=>{
+   const q=shifted(p,o);ctx.save();ctx.fillStyle="#ffd166";ctx.strokeStyle="#17120b";ctx.lineWidth=2;ctx.beginPath();ctx.arc(q.x,q.y,8,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.fillStyle="#17120b";ctx.font="bold 10px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(String(i+1),q.x,q.y);ctx.restore();
+ });
+}
+function draw(){
+ if(!S.image)return;
+ ctx.clearRect(0,0,E.canvas.width,E.canvas.height);ctx.drawImage(S.image,0,0,E.canvas.width,E.canvas.height);
+ pctx.clearRect(0,0,E.preview.width,E.preview.height);
+ if(S.fit){render(ctx,false);render(pctx,true);E.yaw.textContent=deg(S.fit.yaw*.75);E.pitch.textContent=deg(S.fit.pitch);E.roll.textContent=deg(S.fit.roll)}
+ drawManualPoints();
+}
+function importPhoto(file){
+ if(!file)return;
+ setStatus("Ouverture de la photo…");
+ const reader=new FileReader();
+ reader.onerror=()=>setStatus("Impossible de lire la photo.","err");
+ reader.onload=()=>{const im=new Image();im.onerror=()=>setStatus("Image non prise en charge. Essaie JPEG ou PNG.","err");im.onload=()=>{
+   S.image=im;S.name=(file.name||"loomi").replace(/\.[^.]+$/,"");
+   const s=Math.min(1,1900/Math.max(im.naturalWidth,im.naturalHeight));
+   E.canvas.width=Math.max(1,Math.round(im.naturalWidth*s));E.canvas.height=Math.max(1,Math.round(im.naturalHeight*s));
+   E.empty.style.display="none";S.fit=null;S.manual=false;S.manualPoints=[];enable();setStatus("Photo importée. Clique sur Analyser ou Mode manuel.","ok");draw();
+ };im.src=reader.result};reader.readAsDataURL(file);
+}
+function updateManualCard(){
+ const i=S.manualPoints.length;
+ E.prompt.textContent="Clique sur "+prompts[i]+".";
+ E.count.textContent="Point "+(i+1)+" sur 8";
+ E.progress.style.width=(i/8*100)+"%";
+}
+function startManual(){
+ if(!S.image)return;
+ S.manual=true;S.fit=null;S.manualPoints=[];updateManualCard();E.overlay.hidden=false;setStatus("Mode manuel activé. Suis les 8 points.","ok");draw();
+}
+function canvasPoint(ev){
+ const r=E.canvas.getBoundingClientRect();
+ return{x:(ev.clientX-r.left)*E.canvas.width/r.width,y:(ev.clientY-r.top)*E.canvas.height/r.height};
+}
+async function analyze(){
+ if(!S.image)return;
+ if(!S.ready){setStatus("Le moteur automatique n’est pas chargé. Utilise le mode manuel.","err");return}
+ E.loader.hidden=false;
+ try{await S.mesh.send({image:S.image})}catch(e){E.loader.hidden=true;setStatus("Analyse automatique impossible. Le mode manuel fonctionne sans Internet.","err")}
+}
+async function initMesh(){
+ try{
+   let tries=0;while(!window.FaceMesh&&tries++<80)await new Promise(r=>setTimeout(r,100));
+   if(!window.FaceMesh)throw new Error("FaceMesh indisponible");
+   S.mesh=new FaceMesh({locateFile:file=>"https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/"+file});
+   S.mesh.setOptions({maxNumFaces:1,refineLandmarks:true,minDetectionConfidence:.5,minTrackingConfidence:.5});
+   S.mesh.onResults(res=>{
+     E.loader.hidden=true;
+     if(!res.multiFaceLandmarks||!res.multiFaceLandmarks.length){setStatus("Aucun visage détecté. Utilise le mode manuel.","err");return}
+     S.fit=fromLandmarks(res.multiFaceLandmarks[0]);S.manual=false;S.manualPoints=[];setStatus("Analyse terminée. Structure Loomis reconstruite.","ok");draw();
+   });
+   S.ready=true;E.badge.textContent="Moteur prêt";E.badge.className="badge ok";
+ }catch(e){E.badge.textContent="Mode manuel disponible";E.badge.className="badge err";setStatus("Analyse automatique indisponible. Le mode manuel reste utilisable.","err")}
+}
+
+E.file.addEventListener("change",e=>importPhoto(e.target.files&&e.target.files[0]));
+E.analyze.addEventListener("click",analyze);
+E.manual.addEventListener("click",startManual);
+E.cancel.addEventListener("click",()=>{S.manual=false;S.manualPoints=[];E.overlay.hidden=true;setStatus("Mode manuel annulé.");draw()});
+E.undo.addEventListener("click",()=>{if(S.manualPoints.length)S.manualPoints.pop();updateManualCard();draw()});
+E.overlay.addEventListener("click",e=>{if(e.target===E.overlay){E.overlay.hidden=true;setStatus("Clique maintenant directement sur la photo.","ok")}});
+E.canvas.addEventListener("pointerdown",ev=>{
+ if(!S.manual)return;
+ ev.preventDefault();
+ const p=canvasPoint(ev);S.manualPoints.push(p);draw();
+ if(S.manualPoints.length===8){
+   S.fit=fromManual(S.manualPoints);S.manual=false;E.overlay.hidden=true;setStatus("Calibrage manuel terminé. La structure peut maintenant être réglée.","ok");draw();
+ }else{
+   updateManualCard();E.overlay.hidden=false;
+ }
+});
+E.reset.addEventListener("click",()=>{S.fit=null;S.manual=false;S.manualPoints=[];E.ox.value=0;E.oy.value=0;setStatus("Construction réinitialisée.");draw()});
+E.export.addEventListener("click",()=>{if(!S.image)return;draw();const a=document.createElement("a");a.download=S.name+"-loomi-v3-1.png";a.href=E.canvas.toDataURL("image/png");a.click()});
+["skull","side","jaw","axis","brow","eyes","nose","mouth","opacity","width","scale","skullWidth","skullHeight","sideSize","jawWidth","ox","oy"].forEach(id=>E[id].addEventListener("input",draw));
+initMesh();
+})();
+</script>
+</body>
+</html>
