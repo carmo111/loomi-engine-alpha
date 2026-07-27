@@ -1,25 +1,12 @@
-# Loomi Geometry Engine 2.0
+# Loomi 3D Editor V1
 
-Nouvelle base anatomique indépendante.
+Éditeur manuel 3D pour superposer une structure Loomis sur une photographie.
 
-## Architecture
-1. MediaPipe mesure le visage.
-2. Le moteur calcule un repère local de tête.
-3. Un modèle anatomique reconstruit la boîte crânienne.
-4. La sphère Loomis est placée selon la pose.
+Fonctions :
+- déplacement, rotation et redimensionnement 3D ;
+- orientations face, 3/4, profil et dos ;
+- réglage du crâne et de la mâchoire ;
+- visibilité séparée des guides ;
+- export PNG.
 
-## Mesures utilisées
-- écartement des yeux ;
-- largeur des tempes ;
-- largeur des pommettes ;
-- hauteur sourcils-menton ;
-- yaw ;
-- roll ;
-- asymétrie de perspective.
-
-## Réglages
-- taille anatomique ;
-- recul du crâne ;
-- hauteur du crâne.
-
-Le plan latéral et la mâchoire seront ajoutés après validation de cette base.
+Pour GitHub Pages, place `index.html` à la racine du dépôt puis active Pages sur la branche `main`.
