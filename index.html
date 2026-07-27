@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Loomi Geometry Engine V3</title>
+<title>Loomi Geometry Engine V3.1</title>
 <style>
 :root{--bg:#090b0d;--panel:#14191d;--panel2:#1d2429;--line:#344047;--text:#f7f8f9;--muted:#9ba7ad;--red:#ff4a2d;--green:#52d59c;--blue:#4cb4ff}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -26,7 +26,7 @@ canvas{display:block;max-width:100%;max-height:100%;touch-action:none}.empty{tex
 </head>
 <body>
 <header>
-<div><small>NEW GEOMETRY CORE</small><h1>Loomi Geometry Engine <b>V3</b></h1></div>
+<div><small>NEW GEOMETRY CORE</small><h1>Loomi Geometry Engine <b>V3.1</b></h1></div>
 <span id="badge" class="badge">Chargement…</span>
 </header>
 <div class="app">
@@ -66,7 +66,7 @@ canvas{display:block;max-width:100%;max-height:100%;touch-action:none}.empty{tex
 </section>
 
 <section class="block">
-<p class="note"><b>Principe V3 :</b> Loomi place maintenant la sphère dans la boîte crânienne, puis projette le visage sur sa partie avant. Le cercle reste parfait et son centre recule selon l’orientation de la tête.</p>
+<p class="note"><b>Principe V3.1 :</b> La sphère est davantage reculée et légèrement remontée pour englober la boîte crânienne. Le rayon reste inchangé et le curseur arrière dispose maintenant d’une amplitude beaucoup plus grande.</p>
 </section>
 </aside>
 
@@ -86,7 +86,7 @@ canvas{display:block;max-width:100%;max-height:100%;touch-action:none}.empty{tex
 "use strict";
 const $=id=>document.getElementById(id);
 const E={file:$("file"),canvas:$("canvas"),empty:$("empty"),status:$("status"),badge:$("badge"),analyze:$("analyze"),manual:$("manual"),reset:$("reset"),export:$("export"),loader:$("loader")};
-["sphere","brow","center","equator","handles","radius","back","crown","opacity","stroke"].forEach(id=>E[id]=$(id));
+["sphere","brow","center","equator","handles","radius","back","lift","crown","opacity","stroke"].forEach(id=>E[id]=$(id));
 const ctx=E.canvas.getContext("2d");
 const S={img:null,name:"loomi",mesh:null,ready:false,data:null,drag:false,placing:false};
 const mid=(a,b)=>({x:(a.x+b.x)/2,y:(a.y+b.y)/2});
@@ -143,7 +143,7 @@ function makeData(lm){
    templeL,templeR,yaw,backSign,crown:crownAuto,crownAuto
  };
 }
-function opts(){return{radius:+E.radius.value/100,back:+E.back.value/100,crown:+E.crown.value/100,a:+E.opacity.value/100,s:+E.stroke.value}}
+function opts(){return{radius:+E.radius.value/100,back:+E.back.value/100,lift:+E.lift.value/100,crown:+E.crown.value/100,a:+E.opacity.value/100,s:+E.stroke.value}}
 function geometry(){
  if(!S.data)return null;
 
@@ -170,14 +170,18 @@ function geometry(){
  // Le visage est posé sur l'avant de la sphère.
  // Plus la tête tourne, plus le volume arrière devient visible.
  const yawAmount=Math.abs(d.yaw);
- const baseBack=.18;
- const yawBack=.10*yawAmount;
- const manualBack=o.back*.18;
+ const baseBack=.27;
+ const yawBack=.16*yawAmount;
+ const manualBack=o.back*.34;
  const backOffset=d.backSign*r*(baseBack+yawBack+manualBack);
 
- const center=world(d,backOffset,centerY);
- const top=world(d,backOffset,centerY-r);
- const bottom=world(d,backOffset,centerY+r);
+ // La boîte crânienne est remontée sans modifier le rayon.
+ const liftOffset=-r*(.055+o.lift*.22);
+ const liftedCenterY=centerY+liftOffset;
+
+ const center=world(d,backOffset,liftedCenterY);
+ const top=world(d,backOffset,liftedCenterY-r);
+ const bottom=world(d,backOffset,liftedCenterY+r);
 
  // La ligne des sourcils devient une ligne de construction
  // légèrement raccourcie du côté fuyant.
@@ -194,9 +198,9 @@ function geometry(){
  );
 
  // Équateur volumique de la sphère.
- const equatorA=world(d,-r*.98,centerY);
- const equatorB=world(d, r*.98,centerY);
- const equatorM=world(d,d.yaw*r*.24,centerY-r*.035*yawAmount);
+ const equatorA=world(d,-r*.98,liftedCenterY);
+ const equatorB=world(d, r*.98,liftedCenterY);
+ const equatorM=world(d,d.yaw*r*.24,liftedCenterY-r*.035*yawAmount);
 
  // Axe central volumique :
  // il part du sommet du volume, traverse l'avant de la sphère,
@@ -289,9 +293,9 @@ async function init(){
 E.file.addEventListener("change",e=>importPhoto(e.target.files&&e.target.files[0]));
 E.analyze.addEventListener("click",analyze);
 E.manual.addEventListener("click",()=>{if(!S.data){setStatus("Analyse d’abord le visage.","err");return}S.placing=true;setStatus("Clique sur le vrai sommet du crâne.","ok")});
-E.reset.addEventListener("click",()=>{if(!S.data)return;S.data.crown={...S.data.crownAuto};["radius","back","crown"].forEach((id,i)=>E[id].value=[100,0,0][i]);draw();setStatus("Réglages remis à zéro.","ok")});
+E.reset.addEventListener("click",()=>{if(!S.data)return;S.data.crown={...S.data.crownAuto};["radius","back","lift","crown"].forEach((id,i)=>E[id].value=[100,28,12,0][i]);draw();setStatus("Réglages remis à zéro.","ok")});
 E.export.addEventListener("click",()=>{if(!S.img)return;draw();const a=document.createElement("a");a.download=S.name+"-geometry-v1.png";a.href=E.canvas.toDataURL("image/png");a.click()});
-["sphere","brow","center","equator","handles","radius","back","crown","opacity","stroke"].forEach(id=>E[id].addEventListener("input",draw));
+["sphere","brow","center","equator","handles","radius","back","lift","crown","opacity","stroke"].forEach(id=>E[id].addEventListener("input",draw));
 init();
 })();
 </script>

@@ -1,13 +1,12 @@
-# Loomi Geometry Engine V3
+# Loomi Geometry Engine V3.1
 
-Nouvelle logique de sphère :
+Correction ciblée à partir de la dernière capture :
 
+- décalage arrière automatique renforcé ;
+- amplitude du curseur arrière largement augmentée ;
+- sphère légèrement remontée sans changer son rayon ;
+- nouveau réglage de hauteur de la boîte crânienne ;
 - cercle toujours parfaitement rond ;
-- centre déplacé vers l'arrière de la boîte crânienne ;
-- déplacement arrière modulé par la rotation de la tête ;
-- visage traité comme une surface posée sur l'avant de la sphère ;
-- axe central reconstruit comme un axe volumique ;
-- ligne des sourcils raccourcie du côté fuyant ;
-- plan latéral et mâchoire toujours volontairement absents.
+- lignes et taille du visage inchangées.
 
-Le point rouge du sommet reste déplaçable.
+Le plan latéral et la mâchoire restent absents.
