@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>Loomi 3D Skull V1</title>
+<title>Loomi 3D Skull V2</title>
 <style>
 :root{
   --bg:#080b0e;--panel:#10161a;--line:#2e3941;--text:#f4f7f8;
-  --muted:#aeb8bd;--accent:#ff5b48;--soft:#ff9a8d;
+  --muted:#aeb8bd;--accent:#ff5b48;
 }
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -50,8 +50,8 @@ header{display:flex;align-items:center;justify-content:space-between;padding:10p
 <body>
 <div class="app">
 <header>
-  <div class="brand">Loomi 3D <b>Skull V1</b></div>
-  <div class="status">Volume réel</div>
+  <div class="brand">Loomi 3D <b>Skull V2</b></div>
+  <div class="status">Crâne renforcé</div>
 </header>
 
 <section id="stage" class="stage">
@@ -68,14 +68,14 @@ header{display:flex;align-items:center;justify-content:space-between;padding:10p
   </div>
 
   <div id="tip" class="tip">Glisse pour déplacer la tête</div>
-  <div id="empty" class="empty"><div><b>Ajoute une photo</b>Puis pose le crâne Loomis 3D dessus.</div></div>
+  <div id="empty" class="empty"><div><b>Ajoute une photo</b>Puis ajuste le crâne Loomis 3D.</div></div>
 </section>
 
 <footer class="bottom">
   <div>
     <div class="modes">
       <button class="mode active" data-mode="move">Déplacer</button>
-      <button class="mode" data-mode="rotate">Tourner 360°</button>
+      <button class="mode" data-mode="rotate">Tourner 3D</button>
       <button class="mode" data-mode="scale">Taille</button>
     </div>
     <div class="presets">
@@ -87,8 +87,11 @@ header{display:flex;align-items:center;justify-content:space-between;padding:10p
   </div>
 
   <div id="panel" class="panel">
-    <div class="row"><label for="opacity">Transparence du volume</label><input id="opacity" type="range" min="8" max="70" value="27"></div>
-    <div class="row"><label for="lineOpacity">Force des lignes</label><input id="lineOpacity" type="range" min="20" max="100" value="90"></div>
+    <div class="row"><label for="yaw">Rotation gauche / droite</label><input id="yaw" type="range" min="-180" max="180" value="0"></div>
+    <div class="row"><label for="pitch">Inclinaison haut / bas</label><input id="pitch" type="range" min="-90" max="90" value="0"></div>
+    <div class="row"><label for="roll">Inclinaison latérale</label><input id="roll" type="range" min="-90" max="90" value="0"></div>
+    <div class="row"><label for="opacity">Transparence du volume</label><input id="opacity" type="range" min="8" max="70" value="24"></div>
+    <div class="row"><label for="lineOpacity">Force des lignes</label><input id="lineOpacity" type="range" min="20" max="100" value="92"></div>
     <div class="row"><label for="headWidth">Largeur du crâne</label><input id="headWidth" type="range" min="78" max="125" value="100"></div>
     <div class="row"><label for="headHeight">Hauteur du crâne</label><input id="headHeight" type="range" min="78" max="125" value="100"></div>
     <div class="row"><label for="jawLength">Longueur de mâchoire</label><input id="jawLength" type="range" min="72" max="138" value="100"></div>
@@ -96,7 +99,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:10p
     <div class="switches">
       <label><input id="showVolume" type="checkbox" checked> Volume</label>
       <label><input id="showWire" type="checkbox" checked> Structure</label>
-      <label><input id="showPlanes" type="checkbox" checked> Plans latéraux</label>
+      <label><input id="showPlanes" type="checkbox" checked> Plans</label>
       <label><input id="showJaw" type="checkbox" checked> Mâchoire</label>
     </div>
   </div>
@@ -107,119 +110,161 @@ header{display:flex;align-items:center;justify-content:space-between;padding:10p
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/+esm";
 
 const $=id=>document.getElementById(id);
-const stage=$("stage"), wrap=$("canvasWrap"), photo=$("photo"), empty=$("empty"), tip=$("tip");
+const stage=$("stage"),wrap=$("canvasWrap"),photo=$("photo"),empty=$("empty"),tip=$("tip");
 
 const scene=new THREE.Scene();
 const camera=new THREE.OrthographicCamera(-4,4,4,-4,.1,100);
-camera.position.set(0,0,10);
-camera.lookAt(0,0,0);
+camera.position.set(0,0,10);camera.lookAt(0,0,0);
 
 const renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,preserveDrawingBuffer:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.setClearColor(0x000000,0);
 wrap.appendChild(renderer.domElement);
 
-const head=new THREE.Group();
-scene.add(head);
+scene.add(new THREE.AmbientLight(0xffffff,1.45));
+const key=new THREE.DirectionalLight(0xffffff,1.7);key.position.set(4,5,7);scene.add(key);
+const fill=new THREE.DirectionalLight(0x9fc8ff,.65);fill.position.set(-4,1,3);scene.add(fill);
 
-const volumeGroup=new THREE.Group();
-const wireGroup=new THREE.Group();
-const planeGroup=new THREE.Group();
-const jawGroup=new THREE.Group();
+const head=new THREE.Group();scene.add(head);
+const volumeGroup=new THREE.Group(),wireGroup=new THREE.Group(),planeGroup=new THREE.Group(),jawGroup=new THREE.Group();
 head.add(volumeGroup,wireGroup,planeGroup,jawGroup);
 
-let volumeMaterials=[], lineMaterials=[];
+let volumeMaterials=[],lineMaterials=[];
 let shape={w:1,h:1,jl:1,jw:1};
 
 function clearGroup(g){
   while(g.children.length){
-    const o=g.children.pop();
-    o.geometry?.dispose();
-    if(o.material && !Array.isArray(o.material)) o.material.dispose?.();
+    const o=g.children.pop();o.geometry?.dispose();o.material?.dispose?.();
   }
 }
-function lineMat(color=0xff5b48){
-  const m=new THREE.LineBasicMaterial({color,transparent:true,opacity:.9,depthTest:true,depthWrite:false});
-  lineMaterials.push(m); return m;
+function vm(color=0xd9dee1,opacity=.24){
+  const m=new THREE.MeshPhongMaterial({color,transparent:true,opacity,side:THREE.DoubleSide,depthWrite:false,shininess:12});
+  volumeMaterials.push(m);return m;
 }
-function volumeMat(color=0xd8dde0,opacity=.27){
-  const m=new THREE.MeshPhongMaterial({color,transparent:true,opacity,side:THREE.DoubleSide,depthWrite:false,shininess:18});
-  volumeMaterials.push(m); return m;
+function lm(color=0xff5b48){
+  const m=new THREE.LineBasicMaterial({color,transparent:true,opacity:.92,depthTest:true,depthWrite:false});
+  lineMaterials.push(m);return m;
 }
-function addLine(group,pts,color){
-  const geo=new THREE.BufferGeometry().setFromPoints(pts);
-  const obj=new THREE.Line(geo,lineMat(color));
-  obj.renderOrder=3; group.add(obj); return obj;
+function addLine(g,pts,color){
+  const o=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),lm(color));
+  o.renderOrder=4;g.add(o);return o;
 }
-function circleOnSphere(axis,value,radius,scaleX=1,scaleY=1,n=120){
-  const pts=[];
-  for(let i=0;i<=n;i++){
-    const a=i/n*Math.PI*2;
-    const c=Math.cos(a),s=Math.sin(a);
-    if(axis==="y") pts.push(new THREE.Vector3(c*radius*scaleX,value,s*radius*scaleY));
-    if(axis==="x") pts.push(new THREE.Vector3(value,c*radius*scaleX,s*radius*scaleY));
-    if(axis==="z") pts.push(new THREE.Vector3(c*radius*scaleX,s*radius*scaleY,value));
-  }
+function ellipse(rx,ry,z=0,n=120){
+  const pts=[];for(let i=0;i<=n;i++){const a=i/n*Math.PI*2;pts.push(new THREE.Vector3(Math.cos(a)*rx,Math.sin(a)*ry,z))}
   return pts;
 }
-function bezier(a,b,c,d,n=60){
-  return new THREE.CubicBezierCurve3(a,b,c,d).getPoints(n);
-}
+function bezier(a,b,c,d,n=60){return new THREE.CubicBezierCurve3(a,b,c,d).getPoints(n)}
 
 function build(){
-  volumeMaterials=[]; lineMaterials=[];
+  volumeMaterials=[];lineMaterials=[];
   [volumeGroup,wireGroup,planeGroup,jawGroup].forEach(clearGroup);
 
-  const sx=1.72*shape.w, sy=1.95*shape.h, sz=1.58*shape.w;
+  const sx=1.68*shape.w,sy=1.92*shape.h,sz=1.52*shape.w;
 
-  // Crâne ovoïde réellement volumique
+  // Boîte crânienne plus aplatie sur les côtés
   const skullGeo=new THREE.SphereGeometry(1,64,40);
   skullGeo.scale(sx,sy,sz);
-  const skull=new THREE.Mesh(skullGeo,volumeMat(0xd9dee1,.27));
-  skull.renderOrder=1;
+  const skull=new THREE.Mesh(skullGeo,vm(0xd9dee1,.24));
+  skull.scale.z=.96;
   volumeGroup.add(skull);
 
-  // Plans latéraux légèrement enfoncés
-  const sideRadius=.67*Math.min(shape.w,shape.h);
-  const planeGeo=new THREE.CylinderGeometry(sideRadius,sideRadius,.08,64,1,false);
-  planeGeo.rotateZ(Math.PI/2);
+  // Front plus plat et légèrement incliné
+  const foreheadGeo=new THREE.BoxGeometry(2.05*shape.w,.90*shape.h,.30*shape.w);
+  foreheadGeo.translate(0,.85,sz*.84);
+  foreheadGeo.rotateX(-.15);
+  const forehead=new THREE.Mesh(foreheadGeo,vm(0xcfd6da,.28));
+  volumeGroup.add(forehead);
 
-  const lp=new THREE.Mesh(planeGeo,volumeMat(0xb7c0c6,.38));
-  lp.position.set(-sx*.77,.04,0); lp.renderOrder=2;
-  const rp=lp.clone(); rp.material=volumeMat(0xb7c0c6,.38); rp.position.x=sx*.77;
-  planeGroup.add(lp,rp);
+  // Arcades / masse sourcilière
+  const browGeo=new THREE.BoxGeometry(2.2*shape.w,.28,.38*shape.w);
+  browGeo.translate(0,.18,sz*.98);
+  const brow=new THREE.Mesh(browGeo,vm(0xbfc8cd,.33));
+  volumeGroup.add(brow);
 
-  // Structure du crâne, attachée au volume
-  addLine(wireGroup,circleOnSphere("z",0,1,sx,sy),0xff5b48);
-  addLine(wireGroup,circleOnSphere("x",0,1,sy,sz).map(p=>new THREE.Vector3(p.x,p.y,p.z)),0xff8c7e);
-  addLine(wireGroup,circleOnSphere("y",0,1,sx,sz),0xff9d92);
-
-  // Méridiens avant et 3/4
-  [-.55,0,.55].forEach(k=>{
-    const pts=[];
-    for(let i=0;i<=100;i++){
-      const t=-Math.PI/2+i/100*Math.PI;
-      const y=Math.sin(t)*sy;
-      const z=Math.cos(t)*sz;
-      const x=k*sx*Math.cos(t);
-      pts.push(new THREE.Vector3(x,y,z));
-    }
-    addLine(wireGroup,pts,k===0?0x6ee0ae:0xff8374);
+  // Pommettes
+  [-1,1].forEach(side=>{
+    const cheekGeo=new THREE.BoxGeometry(.58*shape.w,.42,.50*shape.w);
+    cheekGeo.translate(side*.83*shape.w,-.62,sz*.86);
+    cheekGeo.rotateY(side*.18);
+    const cheek=new THREE.Mesh(cheekGeo,vm(0xc4ccd1,.30));
+    volumeGroup.add(cheek);
   });
 
-  // Lignes Loomis courbes sur le volume avant
+  // Plans latéraux
+  const sideR=.66*Math.min(shape.w,shape.h);
+  const pGeo=new THREE.CylinderGeometry(sideR,sideR,.10,64,1,false);
+  pGeo.rotateZ(Math.PI/2);
+  const lp=new THREE.Mesh(pGeo,vm(0xb5bec4,.38));lp.position.set(-sx*.77,.02,0);
+  const rp=new THREE.Mesh(pGeo,vm(0xb5bec4,.38));rp.position.set(sx*.77,.02,0);
+  planeGroup.add(lp,rp);
+
+  // Orbites pour rendre la lecture plus crânienne
+  [-1,1].forEach(side=>{
+    const ring=new THREE.TorusGeometry(.42,.045,10,64);
+    ring.scale(1,.82,1);
+    const mesh=new THREE.Mesh(ring,vm(0xffc06b,.55));
+    mesh.position.set(side*.55,-.18,sz*1.03);
+    mesh.rotation.x=Math.PI/2;
+    planeGroup.add(mesh);
+  });
+
+  // Nez osseux simplifié
+  const noseGeo=new THREE.ConeGeometry(.25,.90,4);
+  noseGeo.rotateX(Math.PI/2);
+  noseGeo.position.set(0,-.45,sz*1.24);
+  const nose=new THREE.Mesh(noseGeo,vm(0xc9d0d4,.34));
+  volumeGroup.add(nose);
+
+  // Mâchoire plus anguleuse
+  const jawTop=-.10,jawY=-1.72*shape.jl,chinY=-2.60*shape.jl,jx=1.08*shape.jw,zf=sz*.70,zb=-sz*.18;
+  const verts=[
+    -sx*.72,jawTop,zf, sx*.72,jawTop,zf,
+    -jx,jawY,zf*.78, jx,jawY,zf*.78,
+    0,chinY,zf*.55,
+    -sx*.65,jawTop,zb, sx*.65,jawTop,zb,
+    -jx*.84,jawY,zb, jx*.84,jawY,zb,
+    0,chinY,zb
+  ];
+  const idx=[
+    0,2,1,1,2,3,2,4,3,
+    5,6,7,6,8,7,7,8,9,
+    0,5,2,5,7,2,
+    1,3,6,6,3,8,
+    2,7,4,7,9,4,
+    3,4,8,8,4,9
+  ];
+  const jGeo=new THREE.BufferGeometry();
+  jGeo.setAttribute("position",new THREE.Float32BufferAttribute(verts,3));
+  jGeo.setIndex(idx);jGeo.computeVertexNormals();
+  jawGroup.add(new THREE.Mesh(jGeo,vm(0xc8cfd3,.27)));
+
+  // Lignes Loomis réellement attachées au volume
+  addLine(wireGroup,ellipse(sx,sy,0),0xff5b48);
+  addLine(wireGroup,ellipse(sy,sz,0).map(p=>new THREE.Vector3(0,p.x,p.y)),0xff8c7e);
+  addLine(wireGroup,ellipse(sx,sz,0).map(p=>new THREE.Vector3(p.x,0,p.y)),0xff9d92);
+
+  // Axe central avant courbé
+  const axis=[];
+  for(let i=0;i<=90;i++){
+    const t=-1+i/90*2;
+    const y=t*sy;
+    const z=Math.sqrt(Math.max(0,1-(y*y)/(sy*sy)))*sz;
+    axis.push(new THREE.Vector3(0,y,z));
+  }
+  addLine(wireGroup,axis,0x70dcae);
+
+  // Repères horizontaux sur le volume avant
   const levels=[.18,-.25,-.78,-1.18];
-  levels.forEach((y,idx)=>{
+  levels.forEach((y,idx2)=>{
     const yy=y*shape.h;
-    const norm=Math.max(0,1-(yy*yy)/(sy*sy));
-    const rx=Math.sqrt(norm)*sx;
-    const rz=Math.sqrt(norm)*sz;
+    const n=Math.max(0,1-(yy*yy)/(sy*sy));
+    const rx=Math.sqrt(n)*sx,rz=Math.sqrt(n)*sz;
     const pts=[];
     for(let i=0;i<=90;i++){
       const a=Math.PI-(i/90)*Math.PI;
       pts.push(new THREE.Vector3(Math.cos(a)*rx,yy,Math.sin(a)*rz));
     }
-    addLine(wireGroup,pts,idx===1?0x69bdf0:0xff887b);
+    addLine(wireGroup,pts,idx2===1?0x69bdf0:0xff887b);
   });
 
   // Contours des plans latéraux
@@ -227,65 +272,28 @@ function build(){
     const pts=[];
     for(let i=0;i<=100;i++){
       const a=i/100*Math.PI*2;
-      pts.push(new THREE.Vector3(side*sx*.78,Math.cos(a)*sideRadius,Math.sin(a)*sideRadius));
+      pts.push(new THREE.Vector3(side*sx*.77,Math.cos(a)*sideR,Math.sin(a)*sideR));
     }
     addLine(planeGroup,pts,0xffc06b);
   });
 
-  // Mâchoire en volume léger
-  const jawTopY=-.08, jawY=-1.78*shape.jl, chinY=-2.62*shape.jl;
-  const jx=1.12*shape.jw, zFront=sz*.63, zBack=-sz*.22;
-  const verts=[
-    -sx*.76,jawTopY,zFront,   sx*.76,jawTopY,zFront,
-    -jx,jawY,zFront*.75,      jx,jawY,zFront*.75,
-    0,chinY,zFront*.52,
-    -sx*.70,jawTopY,zBack,    sx*.70,jawTopY,zBack,
-    -jx*.88,jawY,zBack,       jx*.88,jawY,zBack,
-    0,chinY,zBack
-  ];
-  const idx=[
-    0,2,1, 1,2,3, 2,4,3,
-    5,6,7, 6,8,7, 7,8,9,
-    0,5,2, 5,7,2,
-    1,3,6, 6,3,8,
-    2,7,4, 7,9,4,
-    3,4,8, 8,4,9
-  ];
-  const jawGeo=new THREE.BufferGeometry();
-  jawGeo.setAttribute("position",new THREE.Float32BufferAttribute(verts,3));
-  jawGeo.setIndex(idx); jawGeo.computeVertexNormals();
-  const jawMesh=new THREE.Mesh(jawGeo,volumeMat(0xc8cfd3,.26));
-  jawMesh.renderOrder=1; jawGroup.add(jawMesh);
-
   // Contours mâchoire
-  const frontLeft=bezier(
-    new THREE.Vector3(-sx*.76,jawTopY,zFront),
-    new THREE.Vector3(-sx*.82,-.75,zFront*.95),
-    new THREE.Vector3(-jx,jawY,zFront*.75),
-    new THREE.Vector3(0,chinY,zFront*.52)
-  );
-  const frontRight=bezier(
-    new THREE.Vector3(sx*.76,jawTopY,zFront),
-    new THREE.Vector3(sx*.82,-.75,zFront*.95),
-    new THREE.Vector3(jx,jawY,zFront*.75),
-    new THREE.Vector3(0,chinY,zFront*.52)
-  );
-  addLine(jawGroup,frontLeft,0xff5b48);
-  addLine(jawGroup,frontRight,0xff5b48);
+  addLine(jawGroup,bezier(
+    new THREE.Vector3(-sx*.72,jawTop,zf),
+    new THREE.Vector3(-sx*.82,-.70,zf*.92),
+    new THREE.Vector3(-jx,jawY,zf*.78),
+    new THREE.Vector3(0,chinY,zf*.55)
+  ),0xff5b48);
+  addLine(jawGroup,bezier(
+    new THREE.Vector3(sx*.72,jawTop,zf),
+    new THREE.Vector3(sx*.82,-.70,zf*.92),
+    new THREE.Vector3(jx,jawY,zf*.78),
+    new THREE.Vector3(0,chinY,zf*.55)
+  ),0xff5b48);
 
-  // Nez simplifié en structure pour comprendre l'orientation
-  const nosePts=[
-    new THREE.Vector3(0,.05,sz*1.00),
-    new THREE.Vector3(0,-.72,sz*1.34),
-    new THREE.Vector3(-.24,-.83,sz*1.18),
-    new THREE.Vector3(.24,-.83,sz*1.18),
-    new THREE.Vector3(0,-.72,sz*1.34)
-  ];
-  addLine(wireGroup,nosePts,0xffc06b);
-
-  applyVisibility();
-  applyOpacity();
+  applyVisibility();applyOpacity();
 }
+
 function applyVisibility(){
   volumeGroup.visible=$("showVolume").checked;
   wireGroup.visible=$("showWire").checked;
@@ -298,77 +306,75 @@ function applyOpacity(){
   volumeMaterials.forEach(m=>m.opacity=vo);
   lineMaterials.forEach(m=>m.opacity=lo);
 }
+function syncRotation(){
+  head.rotation.set(
+    THREE.MathUtils.degToRad(Number($("pitch").value)),
+    THREE.MathUtils.degToRad(Number($("yaw").value)),
+    THREE.MathUtils.degToRad(Number($("roll").value))
+  );
+}
+
 build();
 
-scene.add(new THREE.AmbientLight(0xffffff,1.4));
-const key=new THREE.DirectionalLight(0xffffff,1.8);
-key.position.set(3,4,6); scene.add(key);
-const fill=new THREE.DirectionalLight(0x9fc8ff,.8);
-fill.position.set(-4,1,3); scene.add(fill);
-
 let mode="move",dragging=false,start={x:0,y:0},startPos=new THREE.Vector3(),startRot=new THREE.Euler(),startScale=1,pinch=null;
-
 function setMode(m){
   mode=m;
   document.querySelectorAll(".mode").forEach(b=>b.classList.toggle("active",b.dataset.mode===m));
-  tip.textContent=m==="move"?"Glisse pour déplacer la tête":m==="rotate"?"Glisse pour tourner le crâne en 3D":"Glisse verticalement ou pince pour changer la taille";
+  tip.textContent=m==="move"?"Glisse pour déplacer la tête":m==="rotate"?"Glisse pour tourner. Utilise ⚙️ pour l'inclinaison latérale":"Glisse verticalement ou pince pour changer la taille";
 }
 document.querySelectorAll(".mode").forEach(b=>b.addEventListener("click",()=>setMode(b.dataset.mode)));
 
-function pointerXY(e){
+function pxy(e){
   const r=stage.getBoundingClientRect();
-  return {x:(e.clientX-r.left)/r.width,y:(e.clientY-r.top)/r.height};
+  return{x:(e.clientX-r.left)/r.width,y:(e.clientY-r.top)/r.height};
 }
 stage.addEventListener("pointerdown",e=>{
   if(e.target.closest("button,label,input"))return;
-  stage.setPointerCapture(e.pointerId);
-  dragging=true; start=pointerXY(e);
+  stage.setPointerCapture(e.pointerId);dragging=true;start=pxy(e);
   startPos.copy(head.position);startRot.copy(head.rotation);startScale=head.scale.x;
 });
 stage.addEventListener("pointermove",e=>{
   if(!dragging)return;
-  const p=pointerXY(e),dx=p.x-start.x,dy=p.y-start.y;
+  const p=pxy(e),dx=p.x-start.x,dy=p.y-start.y;
   if(mode==="move"){
-    head.position.x=startPos.x+dx*8;
-    head.position.y=startPos.y-dy*8;
+    head.position.x=startPos.x+dx*8;head.position.y=startPos.y-dy*8;
   }else if(mode==="rotate"){
     head.rotation.y=startRot.y+dx*Math.PI*1.8;
     head.rotation.x=startRot.x+dy*Math.PI*1.25;
+    $("yaw").value=Math.round(THREE.MathUtils.radToDeg(head.rotation.y));
+    $("pitch").value=Math.round(THREE.MathUtils.radToDeg(head.rotation.x));
   }else{
-    const s=Math.max(.22,Math.min(3,startScale-dy*2.8));
-    head.scale.setScalar(s);
+    const s=Math.max(.22,Math.min(3,startScale-dy*2.8));head.scale.setScalar(s);
   }
 });
 ["pointerup","pointercancel"].forEach(ev=>stage.addEventListener(ev,()=>dragging=false));
 
 stage.addEventListener("touchstart",e=>{
   if(e.touches.length===2){
-    const [a,b]=e.touches;
-    pinch={d:Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY),s:head.scale.x};
+    const[a,b]=e.touches;pinch={d:Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY),s:head.scale.x};
   }
 },{passive:true});
 stage.addEventListener("touchmove",e=>{
   if(e.touches.length===2&&pinch){
-    const [a,b]=e.touches;
-    const d=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);
-    const s=Math.max(.22,Math.min(3,pinch.s*d/pinch.d));
-    head.scale.setScalar(s);
+    const[a,b]=e.touches;const d=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);
+    head.scale.setScalar(Math.max(.22,Math.min(3,pinch.s*d/pinch.d)));
   }
 },{passive:true});
 stage.addEventListener("touchend",()=>pinch=null,{passive:true});
 
 document.querySelectorAll("[data-preset]").forEach(b=>b.addEventListener("click",()=>{
-  const p=b.dataset.preset;head.rotation.set(0,0,0);
-  if(p==="three")head.rotation.set(-.05,.68,-.03);
-  if(p==="profile")head.rotation.set(0,Math.PI/2,0);
-  if(p==="back")head.rotation.set(0,Math.PI,0);
+  const p=b.dataset.preset;
+  let yaw=0,pitch=0,roll=0;
+  if(p==="three")yaw=38;
+  if(p==="profile")yaw=90;
+  if(p==="back")yaw=180;
+  $("yaw").value=yaw;$("pitch").value=pitch;$("roll").value=roll;syncRotation();
 }));
 
+["yaw","pitch","roll"].forEach(id=>$(id).addEventListener("input",syncRotation));
 $("file").addEventListener("change",e=>{
   const f=e.target.files?.[0];if(!f)return;
-  const r=new FileReader();
-  r.onload=()=>{photo.src=r.result;empty.style.display="none"};
-  r.readAsDataURL(f);
+  const r=new FileReader();r.onload=()=>{photo.src=r.result;empty.style.display="none"};r.readAsDataURL(f);
 });
 $("settings").addEventListener("click",()=>$("panel").classList.toggle("open"));
 ["showVolume","showWire","showPlanes","showJaw"].forEach(id=>$(id).addEventListener("input",applyVisibility));
@@ -379,10 +385,11 @@ $("jawLength").addEventListener("input",()=>{shape.jl=Number($("jawLength").valu
 $("jawWidth").addEventListener("input",()=>{shape.jw=Number($("jawWidth").value)/100;build()});
 
 $("reset").addEventListener("click",()=>{
-  head.position.set(0,0,0);head.rotation.set(0,0,0);head.scale.setScalar(1);
+  head.position.set(0,0,0);head.scale.setScalar(1);
+  ["yaw","pitch","roll"].forEach(id=>$(id).value=0);syncRotation();
   shape={w:1,h:1,jl:1,jw:1};
   $("headWidth").value=100;$("headHeight").value=100;$("jawLength").value=100;$("jawWidth").value=100;
-  $("opacity").value=27;$("lineOpacity").value=90;build();setMode("move");
+  $("opacity").value=24;$("lineOpacity").value=92;build();setMode("move");
 });
 
 $("export").addEventListener("click",()=>{
@@ -398,22 +405,16 @@ $("export").addEventListener("click",()=>{
     c.drawImage(photo,dx,dy,dw,dh);
   }
   c.drawImage(renderer.domElement,0,0,out.width,out.height);
-  const a=document.createElement("a");a.download="loomi-3d-skull.png";a.href=out.toDataURL("image/png");a.click();
+  const a=document.createElement("a");a.download="loomi-3d-skull-v2.png";a.href=out.toDataURL("image/png");a.click();
 });
 
 function resize(){
-  const w=wrap.clientWidth,h=wrap.clientHeight;
-  renderer.setSize(w,h,false);
-  const v=4,ar=w/h;
-  camera.left=-v*ar;camera.right=v*ar;camera.top=v;camera.bottom=-v;
-  camera.updateProjectionMatrix();
+  const w=wrap.clientWidth,h=wrap.clientHeight;renderer.setSize(w,h,false);
+  const v=4,ar=w/h;camera.left=-v*ar;camera.right=v*ar;camera.top=v;camera.bottom=-v;camera.updateProjectionMatrix();
 }
 new ResizeObserver(resize).observe(wrap);resize();
 
-(function animate(){
-  requestAnimationFrame(animate);
-  renderer.render(scene,camera);
-})();
+(function animate(){requestAnimationFrame(animate);renderer.render(scene,camera)})();
 </script>
 </body>
 </html>

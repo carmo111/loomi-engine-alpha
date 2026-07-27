@@ -1,15 +1,15 @@
-# Loomi 3D Skull V1
+# Loomi 3D Skull V2
 
-Version volumique du mannequin Loomis.
+Améliorations :
+- front plus plat ;
+- arcades sourcilières ;
+- orbites ;
+- pommettes ;
+- nez osseux simplifié ;
+- mâchoire plus anguleuse ;
+- rotation gauche/droite ;
+- inclinaison haut/bas ;
+- inclinaison latérale ;
+- contrôles tactiles et curseurs précis.
 
-## Ce qui change
-- crâne réellement modélisé en 3D ;
-- plans latéraux en volume ;
-- mâchoire en volume ;
-- repères courbés et attachés au crâne ;
-- rotation 360° cohérente ;
-- déplacement, redimensionnement et export PNG ;
-- import de photographie.
-
-## Mise à jour du site GitHub Pages
-Remplace le fichier `index.html` actuel du dépôt `loomi-engine-alpha` par celui de cette archive.
+Pour mettre à jour le site, remplace `index.html` dans le dépôt `loomi-engine-alpha`.
