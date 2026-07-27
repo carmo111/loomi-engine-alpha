@@ -1,12 +1,6 @@
-# Loomi 3D Editor V1
+# Loomi 3D Mannequin V1
 
-Éditeur manuel 3D pour superposer une structure Loomis sur une photographie.
+Version mobile simplifiée : import photo, déplacement au doigt, rotation 3D, redimensionnement, préréglages face/3-4/profil/dos, réglage du crâne et de la mâchoire, export PNG.
 
-Fonctions :
-- déplacement, rotation et redimensionnement 3D ;
-- orientations face, 3/4, profil et dos ;
-- réglage du crâne et de la mâchoire ;
-- visibilité séparée des guides ;
-- export PNG.
-
-Pour GitHub Pages, place `index.html` à la racine du dépôt puis active Pages sur la branche `main`.
+## GitHub Pages
+Dépose `index.html` à la racine du dépôt, puis active Settings > Pages > Deploy from a branch > main / root.
