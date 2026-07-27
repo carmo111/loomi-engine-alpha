@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Loomi Engine V3.2 Structure</title>
+<title>Loomi Engine V3.3 Cranium Fix</title>
 <style>
 :root{--bg:#090c0e;--panel:#151a1e;--panel2:#20272c;--line:#354047;--text:#f6f7f8;--muted:#9ca7ad;--gold:#e8b25e;--green:#57d7a2;--red:#ff7878}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -30,7 +30,7 @@ canvas{display:block;max-width:100%;max-height:100%;touch-action:none}.empty{tex
 </head>
 <body>
 <header>
-<div><small>LOOMI METHOD</small><h1>Loomi Engine <b>V3.2 Structure</b></h1></div>
+<div><small>LOOMI METHOD</small><h1>Loomi Engine <b>V3.3 Cranium Fix</b></h1></div>
 <span id="badge" class="badge">Chargement du moteur…</span>
 </header>
 
@@ -197,15 +197,17 @@ function poly(c,pts,color,w,alpha){
 }
 function geometry(f,o){
  const scale=o.scale, sw=f.skullW*o.sw*scale, sh=f.skullH*o.sh*scale;
- const center=shifted(f.origin,o), angle=f.roll;
- const sideSign=f.yaw>=0?1:-1;
+ const backShift=-f.yaw*sw*.16;
+ const center=shifted(localPoint(f,backShift,-sh*.10),o), angle=f.roll;
+ // Le plan latéral se place à l’arrière du crâne, donc à l’opposé du nez.
+ const sideSign=f.yaw>=0?-1:1;
  const visibleTemple=sideSign>0?(f.L.tr||{x:sw*.45,y:0}):(f.L.tl||{x:-sw*.45,y:0});
- const sideCx=visibleTemple.x*.82+sideSign*sw*.045;
- const sideCy=visibleTemple.y-sh*.035;
+ const sideCx=backShift+sideSign*sw*.365;
+ const sideCy=-sh*.055;
  const sideCenter=shifted(localPoint(f,sideCx,sideCy),o);
- const yawOpen=.55+.45*Math.abs(f.yaw);
- const sideRx=sw*(.155+.055*yawOpen)*o.side;
- const sideRy=sh*.285*o.side;
+ const yawOpen=.58+.42*Math.abs(f.yaw);
+ const sideRx=sw*(.145+.045*yawOpen)*o.side;
+ const sideRy=sh*.255*o.side;
  const browY=(f.L.el.y+f.L.er.y)/2-sh*.11;
  const eyeY=(f.L.el.y+f.L.er.y)/2;
  const noseY=f.L.no.y;
@@ -230,13 +232,13 @@ function geometry(f,o){
  const jawR=shifted(localPoint(f,jawRraw.x*o.jaw,jawRraw.y),o);
 
  const skullPts={
-   top:shifted(localPoint(f,0,-sh*.52),o),
-   upperL:shifted(localPoint(f,-sw*.35,-sh*.43),o),
-   sideL:shifted(localPoint(f,-sw*.515,-sh*.08),o),
-   baseL:shifted(localPoint(f,-sw*.43,sh*.20),o),
-   baseR:shifted(localPoint(f, sw*.43,sh*.20),o),
-   sideR:shifted(localPoint(f, sw*.515,-sh*.08),o),
-   upperR:shifted(localPoint(f, sw*.35,-sh*.43),o)
+   top:shifted(localPoint(f,backShift,-sh*.675),o),
+   upperL:shifted(localPoint(f,backShift-sw*.40,-sh*.555),o),
+   sideL:shifted(localPoint(f,backShift-sw*.575,-sh*.12),o),
+   baseL:shifted(localPoint(f,backShift-sw*.47,sh*.245),o),
+   baseR:shifted(localPoint(f,backShift+sw*.47,sh*.245),o),
+   sideR:shifted(localPoint(f,backShift+sw*.575,-sh*.12),o),
+   upperR:shifted(localPoint(f,backShift+sw*.40,-sh*.555),o)
  };
  const sideFront=shifted(localPoint(f,sideCx-sideSign*sideRx*.95,sideCy),o);
  const sideBack=shifted(localPoint(f,sideCx+sideSign*sideRx*.95,sideCy),o);
@@ -259,14 +261,9 @@ function render(c,preview=false){
  }
  const g=geometry(f,o),w=o.width*(preview?1.25:1),a=o.opacity;
  if(E.skull.checked){
-   const s=g.skullPts;
-   stroke(c,q=>{
-     q.moveTo(s.top.x,s.top.y);
-     q.bezierCurveTo(s.upperL.x,s.upperL.y,s.sideL.x,s.sideL.y,s.baseL.x,s.baseL.y);
-     q.bezierCurveTo(g.center.x-g.sw*.18,g.center.y+g.sh*.31,g.center.x+g.sw*.18,g.center.y+g.sh*.31,s.baseR.x,s.baseR.y);
-     q.bezierCurveTo(s.sideR.x,s.sideR.y,s.upperR.x,s.upperR.y,s.top.x,s.top.y);
-   },"#f3efe4",w,a);
-   ellipse(c,g.center,g.sw*.48,g.sh*.17,g.angle,"#f3efe4",w,a*.68,[7,7]);
+   // La masse crânienne englobe désormais toute la boîte crânienne et se décale vers l’arrière.
+   ellipse(c,g.center,g.sw*.575,g.sh*.575,g.angle,"#f3efe4",w,a);
+   ellipse(c,g.center,g.sw*.555,g.sh*.175,g.angle,"#f3efe4",w,a*.68,[7,7]);
  }
  if(E.side.checked){
    ellipse(c,g.sideCenter,g.sideRx,g.sideRy,g.angle,"#9d6cff",w,a);

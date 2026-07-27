@@ -1,9 +1,9 @@
-# Loomi Engine V3.2 Structure
+# Loomi Engine V3.3 Cranium Fix
 
-Cette version conserve les repères du visage de la V3.1 et retravaille uniquement :
+Correction ciblée d’après la capture de test :
 
-- la masse du crâne, désormais construite avec un contour organique ;
-- le plan latéral, placé sur la tempe visible et modulé par la rotation ;
-- la mâchoire, basée sur les pommettes, les angles mandibulaires et le menton.
+- cercle crânien agrandi et déplacé vers le haut et l’arrière pour englober la boîte crânienne ;
+- plan latéral placé du côté opposé au nez, donc du côté arrière du crâne ;
+- repères sourcils, yeux, nez, bouche, menton et mâchoire conservés.
 
-Le mode manuel guidé reste présent. Aucun Service Worker ni cache applicatif.
+Aucun Service Worker ni cache applicatif.
