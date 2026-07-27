@@ -1,12 +1,13 @@
-# Loomi Geometry Engine V3.1
+# Loomi Geometry Engine V3.1.1
 
-Correction ciblée à partir de la dernière capture :
+Correctif d'analyse mobile :
 
-- décalage arrière automatique renforcé ;
-- amplitude du curseur arrière largement augmentée ;
-- sphère légèrement remontée sans changer son rayon ;
-- nouveau réglage de hauteur de la boîte crânienne ;
-- cercle toujours parfaitement rond ;
-- lignes et taille du visage inchangées.
+- réduction automatique de la photo avant MediaPipe ;
+- retour visuel immédiat après appui sur Analyser ;
+- délai maximal de 15 secondes ;
+- déblocage automatique du bouton ;
+- redémarrage de MediaPipe si l'analyse se fige ;
+- seuil de détection légèrement assoupli ;
+- erreurs affichées directement dans l'interface.
 
-Le plan latéral et la mâchoire restent absents.
+La géométrie du crâne de la V3.1 est conservée.
