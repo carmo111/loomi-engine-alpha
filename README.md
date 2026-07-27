@@ -1,10 +1,9 @@
-# Loomi Engine V3.1 Clean
+# Loomi Engine V3.2 Structure
 
-Reconstruction du V3 avec deux corrections majeures :
+Cette version conserve les repères du visage de la V3.1 et retravaille uniquement :
 
-- mode manuel guidé en 8 points, avec progression, annulation et retour en arrière ;
-- structure Loomis ancrée sur le visage réel : masse crânienne, plan latéral, axe, repères courbes et bloc mandibulaire.
+- la masse du crâne, désormais construite avec un contour organique ;
+- le plan latéral, placé sur la tempe visible et modulé par la rotation ;
+- la mâchoire, basée sur les pommettes, les angles mandibulaires et le menton.
 
-## Installation GitHub Pages
-
-Supprime les anciens fichiers du dépôt puis place `index.html` à la racine. Aucun Service Worker et aucun cache applicatif ne sont utilisés.
+Le mode manuel guidé reste présent. Aucun Service Worker ni cache applicatif.

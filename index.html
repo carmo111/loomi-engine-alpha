@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Loomi Engine V3.1 Clean</title>
+<title>Loomi Engine V3.2 Structure</title>
 <style>
 :root{--bg:#090c0e;--panel:#151a1e;--panel2:#20272c;--line:#354047;--text:#f6f7f8;--muted:#9ca7ad;--gold:#e8b25e;--green:#57d7a2;--red:#ff7878}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -30,7 +30,7 @@ canvas{display:block;max-width:100%;max-height:100%;touch-action:none}.empty{tex
 </head>
 <body>
 <header>
-<div><small>LOOMI METHOD</small><h1>Loomi Engine <b>V3.1 Clean</b></h1></div>
+<div><small>LOOMI METHOD</small><h1>Loomi Engine <b>V3.2 Structure</b></h1></div>
 <span id="badge" class="badge">Chargement du moteur…</span>
 </header>
 
@@ -151,19 +151,37 @@ function build(a){
  const eyeToChin=dot(sub(a.ch,eyeCenter),yAxis);
  const topToEye=dot(sub(eyeCenter,a.top),yAxis);
  const pitch=clamp((topToEye/Math.max(1,eyeToChin)-.48)*.9,-.45,.45);
- const skullW=Math.max(templeSpan*1.06,eyeSpan*2.05);
- const skullH=Math.max(faceH*.67,skullW*.92);
+ const skullW=Math.max(templeSpan*1.03,eyeSpan*2.02);
+ const skullH=Math.max(faceH*.66,skullW*.90);
  const origin=add(eyeCenter,mul(yAxis,-skullH*.20));
  const toLocal=p=>({x:dot(sub(p,origin),xAxis),y:dot(sub(p,origin),yAxis)});
- const L={el:toLocal(a.el),er:toLocal(a.er),no:toLocal(a.no),ch:toLocal(a.ch),tl:toLocal(a.tl),tr:toLocal(a.tr),top:toLocal(a.top),mo:toLocal(a.mo)};
+ const L={};
+ Object.keys(a).forEach(k=>{if(a[k]&&typeof a[k].x==="number")L[k]=toLocal(a[k])});
  return{a,origin,xAxis,yAxis,skullW,skullH,yaw,pitch,roll,L};
 }
 function dot(a,b){return a.x*b.x+a.y*b.y}
 function fromLandmarks(lm){
  const P=i=>({x:lm[i].x*E.canvas.width,y:lm[i].y*E.canvas.height});
- return build({el:mid(P(33),P(133)),er:mid(P(362),P(263)),no:P(1),ch:P(152),tl:P(234),tr:P(454),top:P(10),mo:P(13)});
+ return build({
+   el:mid(P(33),P(133)),er:mid(P(362),P(263)),no:P(1),ch:P(152),
+   tl:P(234),tr:P(454),top:P(10),mo:P(13),
+   cheekL:P(123),cheekR:P(352),jawL:P(172),jawR:P(397),
+   earL:P(127),earR:P(356)
+ });
 }
-function fromManual(p){return build({el:p[0],er:p[1],no:p[2],ch:p[3],tl:p[4],tr:p[5],top:p[6],mo:p[7]})}
+function fromManual(p){
+ const el=p[0],er=p[1],no=p[2],ch=p[3],tl=p[4],tr=p[5],top=p[6],mo=p[7];
+ const eyeCenter=mid(el,er), xAxis=norm(sub(er,el)), yAxis=perp(xAxis);
+ if(yAxis.y<0){yAxis.x*=-1;yAxis.y*=-1}
+ const faceH=dist(top,ch), templeSpan=dist(tl,tr);
+ const cheekY=dot(sub(mo,eyeCenter),yAxis)*.50+dot(sub(ch,eyeCenter),yAxis)*.20;
+ const cheekL=add(eyeCenter,add(mul(xAxis,-templeSpan*.43),mul(yAxis,cheekY)));
+ const cheekR=add(eyeCenter,add(mul(xAxis, templeSpan*.43),mul(yAxis,cheekY)));
+ const jawY=dot(sub(ch,eyeCenter),yAxis)-faceH*.14;
+ const jawL=add(eyeCenter,add(mul(xAxis,-templeSpan*.31),mul(yAxis,jawY)));
+ const jawR=add(eyeCenter,add(mul(xAxis, templeSpan*.31),mul(yAxis,jawY)));
+ return build({el,er,no,ch,tl,tr,top,mo,cheekL,cheekR,jawL,jawR,earL:tl,earR:tr});
+}
 
 function stroke(c,draw,color,w,alpha=1,dash=[]){
  c.save();c.strokeStyle=color;c.lineWidth=w;c.globalAlpha=alpha;c.lineCap="round";c.lineJoin="round";c.setLineDash(dash);c.beginPath();draw(c);c.stroke();c.restore();
@@ -181,29 +199,52 @@ function geometry(f,o){
  const scale=o.scale, sw=f.skullW*o.sw*scale, sh=f.skullH*o.sh*scale;
  const center=shifted(f.origin,o), angle=f.roll;
  const sideSign=f.yaw>=0?1:-1;
- const sideCenter=shifted(localPoint(f,sideSign*sw*.34,-sh*.01),o);
- const sideRx=sw*.22*o.side, sideRy=sh*.34*o.side;
+ const visibleTemple=sideSign>0?(f.L.tr||{x:sw*.45,y:0}):(f.L.tl||{x:-sw*.45,y:0});
+ const sideCx=visibleTemple.x*.82+sideSign*sw*.045;
+ const sideCy=visibleTemple.y-sh*.035;
+ const sideCenter=shifted(localPoint(f,sideCx,sideCy),o);
+ const yawOpen=.55+.45*Math.abs(f.yaw);
+ const sideRx=sw*(.155+.055*yawOpen)*o.side;
+ const sideRy=sh*.285*o.side;
  const browY=(f.L.el.y+f.L.er.y)/2-sh*.11;
  const eyeY=(f.L.el.y+f.L.er.y)/2;
  const noseY=f.L.no.y;
  const mouthY=f.L.mo.y;
  const chinY=f.L.ch.y;
- const left=x=>shifted(localPoint(f,-sw*x,0),o), right=x=>shifted(localPoint(f,sw*x,0),o);
  const contour=(y,curveAmount)=>{
    const half=Math.sqrt(Math.max(.05,1-Math.pow((y+sh*.02)/(sh*.52),2)))*sw*.5;
    const a=shifted(localPoint(f,-half,y),o), b=shifted(localPoint(f,half,y),o);
    const m=shifted(localPoint(f,f.yaw*sw*curveAmount,y-sh*.035*Math.abs(f.yaw)),o);
    return[a,m,b];
  };
- const top=shifted(localPoint(f,0,-sh*.50),o);
+ const top=shifted(localPoint(f,0,-sh*.52),o);
  const chin=shifted(localPoint(f,0,chinY),o);
  const nose=shifted(localPoint(f,f.L.no.x,noseY),o);
  const mouth=shifted(localPoint(f,f.L.mo.x,mouthY),o);
- const jawL=shifted(localPoint(f,-sw*.37*o.jaw,chinY-sh*.26),o);
- const jawR=shifted(localPoint(f,sw*.37*o.jaw,chinY-sh*.26),o);
- const templeL=shifted(localPoint(f,-sw*.48,sh*.02),o);
- const templeR=shifted(localPoint(f,sw*.48,sh*.02),o);
- return{center,sw,sh,angle,sideCenter,sideRx,sideRy,sideSign,brow:contour(browY,.18),eyes:contour(eyeY,.22),noseLine:contour(noseY,.28),mouthLine:contour(mouthY,.34),top,chin,nose,mouth,jawL,jawR,templeL,templeR};
+
+ const cheekL=shifted(localPoint(f,(f.L.cheekL||{x:-sw*.39}).x,(f.L.cheekL||{y:chinY-sh*.34}).y),o);
+ const cheekR=shifted(localPoint(f,(f.L.cheekR||{x: sw*.39}).x,(f.L.cheekR||{y:chinY-sh*.34}).y),o);
+ const jawLraw=f.L.jawL||{x:-sw*.31,y:chinY-sh*.12};
+ const jawRraw=f.L.jawR||{x: sw*.31,y:chinY-sh*.12};
+ const jawL=shifted(localPoint(f,jawLraw.x*o.jaw,jawLraw.y),o);
+ const jawR=shifted(localPoint(f,jawRraw.x*o.jaw,jawRraw.y),o);
+
+ const skullPts={
+   top:shifted(localPoint(f,0,-sh*.52),o),
+   upperL:shifted(localPoint(f,-sw*.35,-sh*.43),o),
+   sideL:shifted(localPoint(f,-sw*.515,-sh*.08),o),
+   baseL:shifted(localPoint(f,-sw*.43,sh*.20),o),
+   baseR:shifted(localPoint(f, sw*.43,sh*.20),o),
+   sideR:shifted(localPoint(f, sw*.515,-sh*.08),o),
+   upperR:shifted(localPoint(f, sw*.35,-sh*.43),o)
+ };
+ const sideFront=shifted(localPoint(f,sideCx-sideSign*sideRx*.95,sideCy),o);
+ const sideBack=shifted(localPoint(f,sideCx+sideSign*sideRx*.95,sideCy),o);
+ return{
+   center,sw,sh,angle,sideCenter,sideRx,sideRy,sideSign,sideFront,sideBack,skullPts,
+   brow:contour(browY,.18),eyes:contour(eyeY,.22),noseLine:contour(noseY,.28),mouthLine:contour(mouthY,.34),
+   top,chin,nose,mouth,cheekL,cheekR,jawL,jawR
+ };
 }
 function render(c,preview=false){
  if(!S.fit)return;
@@ -218,11 +259,25 @@ function render(c,preview=false){
  }
  const g=geometry(f,o),w=o.width*(preview?1.25:1),a=o.opacity;
  if(E.skull.checked){
-   ellipse(c,g.center,g.sw*.50,g.sh*.50,g.angle,"#f3efe4",w,a);
-   ellipse(c,g.center,g.sw*.50,g.sh*.18,g.angle,"#f3efe4",w,a*.72,[7,7]);
+   const s=g.skullPts;
+   stroke(c,q=>{
+     q.moveTo(s.top.x,s.top.y);
+     q.bezierCurveTo(s.upperL.x,s.upperL.y,s.sideL.x,s.sideL.y,s.baseL.x,s.baseL.y);
+     q.bezierCurveTo(g.center.x-g.sw*.18,g.center.y+g.sh*.31,g.center.x+g.sw*.18,g.center.y+g.sh*.31,s.baseR.x,s.baseR.y);
+     q.bezierCurveTo(s.sideR.x,s.sideR.y,s.upperR.x,s.upperR.y,s.top.x,s.top.y);
+   },"#f3efe4",w,a);
+   ellipse(c,g.center,g.sw*.48,g.sh*.17,g.angle,"#f3efe4",w,a*.68,[7,7]);
  }
  if(E.side.checked){
    ellipse(c,g.sideCenter,g.sideRx,g.sideRy,g.angle,"#9d6cff",w,a);
+   stroke(c,q=>{
+     q.moveTo(g.sideFront.x,g.sideFront.y-g.sideRy*.72);
+     q.quadraticCurveTo(g.sideCenter.x-g.sideSign*g.sideRx*.18,g.sideCenter.y,g.sideFront.x,g.sideFront.y+g.sideRy*.72);
+   },"#9d6cff",w*.8,a*.9);
+   stroke(c,q=>{
+     q.moveTo(g.sideCenter.x-g.sideRx*.72*Math.cos(g.angle),g.sideCenter.y-g.sideRx*.72*Math.sin(g.angle));
+     q.lineTo(g.sideCenter.x+g.sideRx*.72*Math.cos(g.angle),g.sideCenter.y+g.sideRx*.72*Math.sin(g.angle));
+   },"#9d6cff",w*.7,a*.65,[6,6]);
  }
  if(E.axis.checked){
    curve(c,g.top,g.nose,g.chin,"#54d5a0",w,a);
@@ -232,8 +287,21 @@ function render(c,preview=false){
  if(E.nose.checked)curve(c,...g.noseLine,"#54d5a0",w,a);
  if(E.mouth.checked)curve(c,...g.mouthLine,"#ff759f",w,a);
  if(E.jaw.checked){
-   const jawMidL=mid(g.templeL,g.jawL),jawMidR=mid(g.templeR,g.jawR);
-   stroke(c,q=>{q.moveTo(g.templeL.x,g.templeL.y);q.quadraticCurveTo(jawMidL.x-shiftY(f,8),jawMidL.y,g.jawL.x,g.jawL.y);q.quadraticCurveTo(g.chin.x-g.sw*.20,g.chin.y,g.chin.x,g.chin.y);q.quadraticCurveTo(g.chin.x+g.sw*.20,g.chin.y,g.jawR.x,g.jawR.y);q.quadraticCurveTo(jawMidR.x+shiftY(f,8),jawMidR.y,g.templeR.x,g.templeR.y)},"#ff759f",w,a);
+   stroke(c,q=>{
+     q.moveTo(g.cheekL.x,g.cheekL.y);
+     q.lineTo(g.jawL.x,g.jawL.y);
+     q.quadraticCurveTo(g.chin.x-g.sw*.18,g.chin.y-g.sh*.015,g.chin.x,g.chin.y);
+     q.quadraticCurveTo(g.chin.x+g.sw*.18,g.chin.y-g.sh*.015,g.jawR.x,g.jawR.y);
+     q.lineTo(g.cheekR.x,g.cheekR.y);
+   },"#ff759f",w,a);
+   stroke(c,q=>{
+     q.moveTo(g.cheekL.x,g.cheekL.y);
+     q.quadraticCurveTo(g.center.x-g.sw*.30,g.center.y+g.sh*.14,g.jawL.x,g.jawL.y);
+   },"#ff759f",w*.65,a*.65,[6,6]);
+   stroke(c,q=>{
+     q.moveTo(g.cheekR.x,g.cheekR.y);
+     q.quadraticCurveTo(g.center.x+g.sw*.30,g.center.y+g.sh*.14,g.jawR.x,g.jawR.y);
+   },"#ff759f",w*.65,a*.65,[6,6]);
  }
 }
 function shiftY(f,n){return f.yAxis.x*n}
