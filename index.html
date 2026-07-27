@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Loomi Geometry Engine V3.1.3</title>
+<title>Loomi Geometry Engine V4</title>
 <style>
 :root{--bg:#090b0d;--panel:#14191d;--panel2:#1d2429;--line:#344047;--text:#f7f8f9;--muted:#9ba7ad;--red:#ff4a2d;--green:#52d59c;--blue:#4cb4ff}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -26,7 +26,7 @@ canvas{display:block;max-width:100%;max-height:100%;touch-action:none}.empty{tex
 </head>
 <body>
 <header>
-<div><small>NEW GEOMETRY CORE</small><h1>Loomi Geometry Engine <b>V3.1.3</b></h1></div>
+<div><small>NEW GEOMETRY CORE</small><h1>Loomi Geometry Engine <b>V4</b></h1></div>
 <span id="badge" class="badge">Chargement…</span>
 </header>
 <div class="app">
@@ -67,7 +67,7 @@ canvas{display:block;max-width:100%;max-height:100%;touch-action:none}.empty{tex
 </section>
 
 <section class="block">
-<p class="note"><b>Principe V3.1.3 :</b> Le curseur de hauteur manquant a été rétabli. Les réglages possèdent maintenant des valeurs de secours pour qu’aucun champ absent ne puisse bloquer l’analyse.</p>
+<p class="note"><b>Principe V4 :</b> Le moteur classe maintenant la pose en face, trois-quarts léger, trois-quarts prononcé ou profil, puis adapte le rayon, le recul, la hauteur et les axes.</p>
 </section>
 </aside>
 
@@ -86,7 +86,7 @@ canvas{display:block;max-width:100%;max-height:100%;touch-action:none}.empty{tex
 (function(){
 "use strict";
 const $=id=>document.getElementById(id);
-const E={file:$("file"),canvas:$("canvas"),empty:$("empty"),status:$("status"),badge:$("badge"),analyze:$("analyze"),manual:$("manual"),reset:$("reset"),export:$("export"),loader:$("loader")};
+const E={file:$("file"),canvas:$("canvas"),empty:$("empty"),status:$("status"),poseStatus:$("poseStatus"),badge:$("badge"),analyze:$("analyze"),manual:$("manual"),reset:$("reset"),export:$("export"),loader:$("loader")};
 ["sphere","brow","center","equator","handles","radius","back","lift","crown","opacity","stroke"].forEach(id=>E[id]=$(id));
 const ctx=E.canvas.getContext("2d");
 const S={img:null,name:"loomi",mesh:null,ready:false,data:null,drag:false,placing:false,busy:false,analysisTimer:null};
@@ -120,39 +120,69 @@ function world(frame,x,y){return add(frame.eyeCenter,add(mul(frame.x,x),mul(fram
 function shifted(p,dx,dy){return{x:p.x+dx,y:p.y+dy}}
 
 function makeData(lm){
- const el=mid(P(lm,33),P(lm,133)), er=mid(P(lm,362),P(lm,263)), eyeCenter=mid(el,er);
+ const el=mid(P(lm,33),P(lm,133));
+ const er=mid(P(lm,362),P(lm,263));
+ const eyeCenter=mid(el,er);
+
  const rawX=norm(sub(er,el));
- // L'axe de la sphère ne doit pas reprendre toute l'inclinaison des yeux.
- // On atténue le roulis pour obtenir une construction plus stable et plus Loomis.
  const rawRoll=Math.atan2(rawX.y,rawX.x);
  const correctedRoll=rawRoll*.72;
  const x={x:Math.cos(correctedRoll),y:Math.sin(correctedRoll)};
- let y=perp(x); if(y.y<0)y=mul(y,-1);
+ let y=perp(x);
+ if(y.y<0)y=mul(y,-1);
 
  const eyeSpan=len(sub(er,el));
- const chin=P(lm,152), nose=P(lm,1), hairline=P(lm,10);
- const browL=avg(lm,[70,63,105,66,107]), browR=avg(lm,[336,296,334,293,300]), browMid=mid(browL,browR);
- const templeL=P(lm,234), templeR=P(lm,454);
+ const chin=P(lm,152);
+ const nose=P(lm,1);
+ const hairline=P(lm,10);
+ const browL=avg(lm,[70,63,105,66,107]);
+ const browR=avg(lm,[336,296,334,293,300]);
+ const browMid=mid(browL,browR);
+ const templeL=P(lm,234);
+ const templeR=P(lm,454);
+ const cheekL=P(lm,123);
+ const cheekR=P(lm,352);
+ const faceLeft=P(lm,234);
+ const faceRight=P(lm,454);
 
  const noseSide=dot(sub(nose,eyeCenter),x);
- const yaw=clamp(noseSide/(eyeSpan*.58),-.95,.95);
+ const yawRaw=clamp(noseSide/(eyeSpan*.58),-.98,.98);
 
- // L'arrière du crâne se trouve à l'opposé de l'avancée du nez.
+ // Mesure de perspective gauche/droite pour stabiliser le yaw.
+ const leftDepth=len(sub(nose,faceLeft));
+ const rightDepth=len(sub(nose,faceRight));
+ const asym=(rightDepth-leftDepth)/Math.max(1,leftDepth+rightDepth);
+ const yaw=clamp(yawRaw*.72+asym*2.4*.28,-.98,.98);
+
  const backSign=yaw>=0?-1:1;
-
  const eyeToChin=Math.max(1,dot(sub(chin,eyeCenter),y));
+ const browToChin=Math.max(1,dot(sub(chin,browMid),y));
+ const templeSpan=len(sub(templeR,templeL));
+ const cheekSpan=len(sub(cheekR,cheekL));
+
+ const absYaw=Math.abs(yaw);
+ let poseType="face";
+ if(absYaw>=.72)poseType="profil";
+ else if(absYaw>=.36)poseType="trois-quarts prononcé";
+ else if(absYaw>=.16)poseType="trois-quarts léger";
+
  const hairLocal=local({eyeCenter,x,y},hairline);
 
- // Le sommet automatique est volontairement plus haut et légèrement plus arrière.
+ // Sommet osseux estimé, pas sommet de la coiffure.
+ // Plus la tête est de face, moins on pousse vers l'arrière.
+ const crownBack=backSign*eyeSpan*(.02+.08*absYaw);
+ const crownLift=eyeToChin*(.43+.06*absYaw);
  const crownAuto=world(
    {eyeCenter,x,y},
-   hairLocal.x + backSign*eyeSpan*.03,
-   hairLocal.y-eyeToChin*.50
+   hairLocal.x+crownBack,
+   hairLocal.y-crownLift
  );
 
  return{
-   el,er,eyeCenter,x,y,eyeSpan,chin,nose,hairline,browL,browR,browMid,
-   templeL,templeR,yaw,backSign,crown:crownAuto,crownAuto
+   el,er,eyeCenter,x,y,eyeSpan,chin,nose,hairline,
+   browL,browR,browMid,templeL,templeR,cheekL,cheekR,
+   yaw,rawRoll,correctedRoll,backSign,eyeToChin,browToChin,
+   templeSpan,cheekSpan,poseType,crown:crownAuto,crownAuto
  };
 }
 function opts(){return{
@@ -167,82 +197,104 @@ function geometry(){
  if(!S.data)return null;
 
  const d=S.data,o=opts();
- const eyeToChin=Math.max(1,dot(sub(d.chin,d.eyeCenter),d.y));
- const templeSpan=len(sub(d.templeR,d.templeL));
  const browLocal=local(d,d.browMid);
  const chinLocal=local(d,d.chin);
  const noseLocal=local(d,d.nose);
+ const absYaw=Math.abs(d.yaw);
 
- // Rayon unique. La taille reste proche de la V2.1,
- // mais le centre n'est plus dérivé directement du visage.
- const radiusFromTemples=templeSpan*.64;
- const radiusFromFace=eyeToChin*.79;
- const r=Math.max(radiusFromTemples,radiusFromFace)*o.radius;
+ // Taille de base selon les proportions réelles.
+ const rTemples=d.templeSpan*.62;
+ const rCheeks=d.cheekSpan*.66;
+ const rFace=d.browToChin*.84;
 
- const crownBase=add(d.crown,mul(d.y,-eyeToChin*o.crown));
+ // Pondération différente selon la pose.
+ let rBase;
+ if(d.poseType==="face"){
+   rBase=Math.max(rTemples,rCheeks*.98,rFace*.92);
+ }else if(d.poseType==="trois-quarts léger"){
+   rBase=Math.max(rTemples*1.02,rCheeks,rFace*.95);
+ }else if(d.poseType==="trois-quarts prononcé"){
+   rBase=Math.max(rTemples*1.05,rCheeks*1.02,rFace*.98);
+ }else{
+   rBase=Math.max(rTemples*1.08,rCheeks*1.04,rFace);
+ }
+ const r=rBase*o.radius;
+
+ const crownBase=add(d.crown,mul(d.y,-d.eyeToChin*o.crown));
  const crownLocal=local(d,crownBase);
 
- // Centre vertical de la boîte crânienne.
- // Le sommet reste la référence, mais le bas est limité avant le cou.
- const centerY=crownLocal.y+r;
+ // Décalage arrière adaptatif.
+ let backFactor;
+ if(d.poseType==="face")backFactor=.04;
+ else if(d.poseType==="trois-quarts léger")backFactor=.13;
+ else if(d.poseType==="trois-quarts prononcé")backFactor=.24;
+ else backFactor=.34;
 
- // Le visage est posé sur l'avant de la sphère.
- // Plus la tête tourne, plus le volume arrière devient visible.
- const yawAmount=Math.abs(d.yaw);
- const baseBack=.27;
- const yawBack=.16*yawAmount;
- const manualBack=o.back*.34;
- const backOffset=d.backSign*r*(baseBack+yawBack+manualBack);
+ backFactor+=o.back*.30;
+ const backOffset=d.backSign*r*backFactor;
 
- // La boîte crânienne est remontée sans modifier le rayon.
- const liftOffset=-r*(.055+o.lift*.22);
- const liftedCenterY=centerY+liftOffset;
+ // Hauteur adaptative. Très faible de face, plus marquée en trois-quarts/profil.
+ let liftFactor;
+ if(d.poseType==="face")liftFactor=.015;
+ else if(d.poseType==="trois-quarts léger")liftFactor=.04;
+ else if(d.poseType==="trois-quarts prononcé")liftFactor=.065;
+ else liftFactor=.08;
+ liftFactor+=o.lift*.18;
 
- const center=world(d,backOffset,liftedCenterY);
- const top=world(d,backOffset,liftedCenterY-r);
- const bottom=world(d,backOffset,liftedCenterY+r);
+ const centerY=crownLocal.y+r-r*liftFactor;
+ const center=world(d,backOffset,centerY);
+ const top=world(d,backOffset,centerY-r);
+ const bottom=world(d,backOffset,centerY+r);
 
- // La ligne des sourcils devient une ligne de construction
- // légèrement raccourcie du côté fuyant.
  const browY=browLocal.y;
- const frontSide=d.backSign>0?-1:1;
- const leftScale=frontSide<0?1:.82;
- const rightScale=frontSide>0?1:.82;
- const browA=world(d,-r*.92*leftScale,browY);
- const browB=world(d, r*.92*rightScale,browY);
+
+ // Ligne des sourcils adaptée à la perspective.
+ const nearScale=1;
+ const farScale=1-.20*absYaw;
+ const leftNear=d.yaw<0;
+ const leftScale=leftNear?nearScale:farScale;
+ const rightScale=leftNear?farScale:nearScale;
+
+ const browA=world(d,-r*.90*leftScale,browY);
+ const browB=world(d, r*.90*rightScale,browY);
  const browM=world(
    d,
-   d.yaw*r*.18,
-   browY-r*(.045+.015*yawAmount)
+   d.yaw*r*(.10+.10*absYaw),
+   browY-r*(.02+.035*absYaw)
  );
 
- // Équateur volumique de la sphère.
- const equatorA=world(d,-r*.98,liftedCenterY);
- const equatorB=world(d, r*.98,liftedCenterY);
- const equatorM=world(d,d.yaw*r*.24,liftedCenterY-r*.035*yawAmount);
-
- // Axe central volumique :
- // il part du sommet du volume, traverse l'avant de la sphère,
- // puis rejoint la base du nez sans filer jusqu'au menton.
- const axisTop=top;
- const axisMid=world(
+ // Équateur volumique.
+ const equatorA=world(d,-r*.98,centerY);
+ const equatorB=world(d, r*.98,centerY);
+ const equatorM=world(
    d,
-   d.yaw*r*.22,
-   browY-r*.02
+   d.yaw*r*(.08+.18*absYaw),
+   centerY-r*(.01+.04*absYaw)
  );
+
+ // Axe central adaptatif.
+ let axisTopX=backOffset;
+ let axisMidX=d.yaw*r*(.05+.16*absYaw);
+ let axisBottomX=noseLocal.x+d.yaw*r*(.02+.05*absYaw);
+
+ if(d.poseType==="face"){
+   axisTopX*=.25;
+   axisMidX*=.35;
+   axisBottomX*=.35;
+ }
+
+ const axisTop=world(d,axisTopX,centerY-r);
+ const axisMid=world(d,axisMidX,browY-r*.01);
  const axisBottomY=Math.min(
-   noseLocal.y+eyeToChin*.06,
-   chinLocal.y-eyeToChin*.26
+   noseLocal.y+d.eyeToChin*.05,
+   chinLocal.y-d.eyeToChin*.28
  );
- const axisBottom=world(
-   d,
-   noseLocal.x+d.yaw*r*.05,
-   axisBottomY
- );
+ const axisBottom=world(d,axisBottomX,axisBottomY);
 
  return{
    ...o,r,center,top,bottom,browA,browB,browM,
-   equatorA,equatorB,equatorM,axisTop,axisMid,axisBottom
+   equatorA,equatorB,equatorM,axisTop,axisMid,axisBottom,
+   poseType:d.poseType,yaw:d.yaw
  };
 }
 function stroke(draw,color,w,a,dash=[]){
@@ -256,6 +308,7 @@ function draw(){
  if(!S.img)return;
  ctx.clearRect(0,0,E.canvas.width,E.canvas.height);ctx.drawImage(S.img,0,0,E.canvas.width,E.canvas.height);
  const g=geometry();if(!g)return;
+if(E.poseStatus)E.poseStatus.innerHTML="<b>Pose détectée :</b> "+g.poseType+" · yaw "+Math.round(g.yaw*90)+"°";
  const angle=Math.atan2(S.data.x.y,S.data.x.x);
  if(E.sphere.checked){
    ctx.save();ctx.strokeStyle="#ff4a2d";ctx.lineWidth=g.s;ctx.globalAlpha=g.a;ctx.beginPath();ctx.arc(g.center.x,g.center.y,g.r,0,Math.PI*2);ctx.stroke();ctx.restore();
@@ -338,7 +391,7 @@ async function analyze(){
 
    S.data=makeData(results.multiFaceLandmarks[0]);
    draw();
-   setStatus("Analyse terminée. La sphère crânienne est affichée.","ok");
+   setStatus("Analyse terminée. La sphère a été adaptée à la pose détectée.","ok");
  }catch(err){
    setStatus("Analyse impossible : "+(err&&err.message?err.message:"erreur inconnue"),"err");
  }finally{

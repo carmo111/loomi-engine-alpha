@@ -1,14 +1,15 @@
-# Loomi Geometry Engine V3.1.3
+# Loomi Geometry Engine V4
 
-Correction de l'erreur :
-`Cannot read properties of null (reading 'value')`
+Nouvelle logique adaptative selon l'orientation du visage.
 
-Cause :
-- le code cherchait le curseur `lift` ;
-- ce curseur n'était pas présent dans le HTML réellement publié.
+## Nouveautés
+- détection de pose : face, trois-quarts léger, trois-quarts prononcé, profil ;
+- estimation du yaw renforcée par l'asymétrie du visage ;
+- rayon recalculé selon tempes, pommettes et hauteur sourcils-menton ;
+- décalage arrière différent selon la pose ;
+- hauteur différente selon la pose ;
+- axe central presque vertical de face, plus volumique en trois-quarts ;
+- ligne des sourcils raccourcie du côté fuyant ;
+- indication visible de la pose détectée.
 
-Corrections :
-- ajout du curseur Hauteur de la boîte crânienne ;
-- valeurs de secours pour tous les réglages ;
-- écouteurs et remise à zéro protégés contre les éléments absents ;
-- analyse V3.1.2 conservée.
+Le plan latéral et la mâchoire restent volontairement absents.
