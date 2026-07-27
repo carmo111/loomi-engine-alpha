@@ -1,17 +1,12 @@
-# Loomi Geometry Engine V1
+# Loomi Geometry Engine V2
 
-Nouvelle base indépendante.
+Rectifications réalisées à partir de la comparaison entre le résultat automatique et la correction manuelle :
 
-## Objectif de cette version
-Construire et valider uniquement :
-- la grande sphère crânienne ;
-- son sommet ;
-- son décalage vers l'arrière de la tête ;
-- l'axe central ;
-- l'axe des sourcils ;
-- l'équateur de la sphère.
+- sphère légèrement plus grande ;
+- sommet automatique placé plus haut ;
+- centre décalé davantage vers l’arrière du crâne ;
+- axe central moins incliné ;
+- bas de la sphère légèrement abaissé ;
+- courbes horizontales moins déformées.
 
-Le plan latéral et la mâchoire ne sont volontairement pas inclus. Ils seront construits après validation du crâne.
-
-## Installation
-Place `index.html` à la racine du dépôt GitHub Pages. Aucun Service Worker ni cache applicatif.
+Le plan latéral et la mâchoire restent volontairement absents.

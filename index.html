@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Loomi Geometry Engine V1</title>
+<title>Loomi Geometry Engine V2</title>
 <style>
 :root{--bg:#090b0d;--panel:#14191d;--panel2:#1d2429;--line:#344047;--text:#f7f8f9;--muted:#9ba7ad;--red:#ff4a2d;--green:#52d59c;--blue:#4cb4ff}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -26,7 +26,7 @@ canvas{display:block;max-width:100%;max-height:100%;touch-action:none}.empty{tex
 </head>
 <body>
 <header>
-<div><small>NEW GEOMETRY CORE</small><h1>Loomi Geometry Engine <b>V1</b></h1></div>
+<div><small>NEW GEOMETRY CORE</small><h1>Loomi Geometry Engine <b>V2</b></h1></div>
 <span id="badge" class="badge">Chargement…</span>
 </header>
 <div class="app">
@@ -34,7 +34,7 @@ canvas{display:block;max-width:100%;max-height:100%;touch-action:none}.empty{tex
 <section class="block">
 <h2>1. Portrait</h2>
 <label class="file"><span>📷 Importer une photo</span><input id="file" type="file" accept="image/*"></label>
-<p id="status" class="status">Cette version travaille uniquement la sphère crânienne.</p>
+<p id="status" class="status">Sphère recalibrée d’après ta correction manuelle.</p>
 <div class="grid">
 <button id="analyze" class="primary" disabled>Analyser</button>
 <button id="manual" disabled>Placer sommet</button>
@@ -57,9 +57,9 @@ canvas{display:block;max-width:100%;max-height:100%;touch-action:none}.empty{tex
 <section class="block">
 <h2>3. Réglages V1</h2>
 <div class="controls">
-<label>Largeur du crâne<input id="width" type="range" min="80" max="145" value="112"></label>
-<label>Hauteur du crâne<input id="height" type="range" min="80" max="145" value="112"></label>
-<label>Décalage arrière<input id="back" type="range" min="-35" max="35" value="8"></label>
+<label>Largeur du crâne<input id="width" type="range" min="80" max="145" value="118"></label>
+<label>Hauteur du crâne<input id="height" type="range" min="80" max="145" value="118"></label>
+<label>Décalage arrière<input id="back" type="range" min="-35" max="35" value="14"></label>
 <label>Sommet du crâne<input id="crown" type="range" min="-30" max="35" value="0"></label>
 <label>Opacité<input id="opacity" type="range" min="20" max="100" value="92"></label>
 <label>Épaisseur<input id="stroke" type="range" min="1" max="7" value="3"></label>
@@ -67,7 +67,7 @@ canvas{display:block;max-width:100%;max-height:100%;touch-action:none}.empty{tex
 </section>
 
 <section class="block">
-<p class="note"><b>Principe V1 :</b> MediaPipe mesure les yeux, les sourcils, le nez, le menton et la rotation. Loomi reconstruit ensuite une sphère indépendante. Le point rouge du sommet peut être déplacé directement sur la photo.</p>
+<p class="note"><b>Principe V2 :</b> MediaPipe mesure le visage, puis Loomi reconstruit une sphère plus large, légèrement décalée vers l’arrière et avec un axe stabilisé. Le point rouge du sommet reste déplaçable.</p>
 </section>
 </aside>
 
@@ -110,44 +110,86 @@ function shifted(p,dx,dy){return{x:p.x+dx,y:p.y+dy}}
 
 function makeData(lm){
  const el=mid(P(lm,33),P(lm,133)), er=mid(P(lm,362),P(lm,263)), eyeCenter=mid(el,er);
- const x=norm(sub(er,el)); let y=perp(x); if(y.y<0)y=mul(y,-1);
+ const rawX=norm(sub(er,el));
+ // L'axe de la sphère ne doit pas reprendre toute l'inclinaison des yeux.
+ // On atténue le roulis pour obtenir une construction plus stable et plus Loomis.
+ const rawRoll=Math.atan2(rawX.y,rawX.x);
+ const correctedRoll=rawRoll*.72;
+ const x={x:Math.cos(correctedRoll),y:Math.sin(correctedRoll)};
+ let y=perp(x); if(y.y<0)y=mul(y,-1);
+
  const eyeSpan=len(sub(er,el));
  const chin=P(lm,152), nose=P(lm,1), hairline=P(lm,10);
  const browL=avg(lm,[70,63,105,66,107]), browR=avg(lm,[336,296,334,293,300]), browMid=mid(browL,browR);
  const templeL=P(lm,234), templeR=P(lm,454);
+
  const noseSide=dot(sub(nose,eyeCenter),x);
  const yaw=clamp(noseSide/(eyeSpan*.58),-.95,.95);
+
+ // L'arrière du crâne se trouve à l'opposé de l'avancée du nez.
  const backSign=yaw>=0?-1:1;
+
  const eyeToChin=Math.max(1,dot(sub(chin,eyeCenter),y));
  const hairLocal=local({eyeCenter,x,y},hairline);
- const crownAuto=world({eyeCenter,x,y},hairLocal.x-backSign*eyeSpan*.10,hairLocal.y-eyeToChin*.42);
- return{el,er,eyeCenter,x,y,eyeSpan,chin,nose,hairline,browL,browR,browMid,templeL,templeR,yaw,backSign,crown:crownAuto,crownAuto};
+
+ // Le sommet automatique est volontairement plus haut et légèrement plus arrière.
+ const crownAuto=world(
+   {eyeCenter,x,y},
+   hairLocal.x + backSign*eyeSpan*.03,
+   hairLocal.y-eyeToChin*.50
+ );
+
+ return{
+   el,er,eyeCenter,x,y,eyeSpan,chin,nose,hairline,browL,browR,browMid,
+   templeL,templeR,yaw,backSign,crown:crownAuto,crownAuto
+ };
 }
 function opts(){return{w:+E.width.value/100,h:+E.height.value/100,back:+E.back.value/100,crown:+E.crown.value/100,a:+E.opacity.value/100,s:+E.stroke.value}}
 function geometry(){
  if(!S.data)return null;
  const d=S.data,o=opts(), eyeToChin=Math.max(1,dot(sub(d.chin,d.eyeCenter),d.y));
  const templeSpan=len(sub(d.templeR,d.templeL));
- const baseW=Math.max(templeSpan*1.30,d.eyeSpan*2.55);
+
+ // Sphère un peu plus généreuse, comme sur la correction de référence.
+ const baseW=Math.max(templeSpan*1.36,d.eyeSpan*2.64);
  const rx=baseW*.50*o.w;
+
  const browLocal=local(d,d.browMid);
  const crownBase=add(d.crown,mul(d.y,-eyeToChin*o.crown));
  const crownLocal=local(d,crownBase);
- const lowerY=browLocal.y+eyeToChin*.53;
- const ry=Math.max(rx*.90,(lowerY-crownLocal.y)/2)*o.h;
+
+ // Le bas de la sphère descend légèrement sous le menton, comme une vraie masse crânienne.
+ const lowerY=Math.max(
+   local(d,d.chin).y+eyeToChin*.09,
+   browLocal.y+eyeToChin*.60
+ );
+
+ const ry=Math.max(rx*.93,(lowerY-crownLocal.y)/2)*o.h;
  const centerY=crownLocal.y+ry;
- const backOffset=d.backSign*rx*(.16+o.back);
+
+ // Décalage arrière renforcé, mais contenu.
+ const backOffset=d.backSign*rx*(.20+o.back);
+
  const center=world(d,backOffset,centerY);
  const top=world(d,backOffset,centerY-ry);
  const bottom=world(d,backOffset,centerY+ry);
+
  const browY=browLocal.y;
  const browA=world(d,-rx*.96,browY), browB=world(d,rx*.96,browY);
- const browM=world(d,d.yaw*rx*.16,browY-ry*.035*Math.abs(d.yaw));
+ const browM=world(d,d.yaw*rx*.12,browY-ry*.025*Math.abs(d.yaw));
+
  const equatorA=world(d,-rx*.98,centerY), equatorB=world(d,rx*.98,centerY);
- const equatorM=world(d,d.yaw*rx*.24,centerY-ry*.04*Math.abs(d.yaw));
- const axisTop=top, axisBottom=world(d,d.yaw*rx*.22,lowerY);
- const axisMid=world(d,d.yaw*rx*.15,browY);
- return{...o,rx,ry,center,top,bottom,browA,browB,browM,equatorA,equatorB,equatorM,axisTop,axisMid,axisBottom};
+ const equatorM=world(d,d.yaw*rx*.18,centerY-ry*.025*Math.abs(d.yaw));
+
+ // Axe plus droit, proche de la correction manuelle.
+ const axisTop=top;
+ const axisBottom=world(d,d.yaw*rx*.12,lowerY-eyeToChin*.10);
+ const axisMid=world(d,d.yaw*rx*.08,browY);
+
+ return{
+   ...o,rx,ry,center,top,bottom,browA,browB,browM,
+   equatorA,equatorB,equatorM,axisTop,axisMid,axisBottom
+ };
 }
 function stroke(draw,color,w,a,dash=[]){
  ctx.save();ctx.strokeStyle=color;ctx.lineWidth=w;ctx.globalAlpha=a;ctx.lineCap="round";ctx.lineJoin="round";ctx.setLineDash(dash);ctx.beginPath();draw(ctx);ctx.stroke();ctx.restore();
@@ -216,7 +258,7 @@ async function init(){
 E.file.addEventListener("change",e=>importPhoto(e.target.files&&e.target.files[0]));
 E.analyze.addEventListener("click",analyze);
 E.manual.addEventListener("click",()=>{if(!S.data){setStatus("Analyse d’abord le visage.","err");return}S.placing=true;setStatus("Clique sur le vrai sommet du crâne.","ok")});
-E.reset.addEventListener("click",()=>{if(!S.data)return;S.data.crown={...S.data.crownAuto};["width","height","back","crown"].forEach((id,i)=>E[id].value=[112,112,8,0][i]);draw();setStatus("Réglages remis à zéro.","ok")});
+E.reset.addEventListener("click",()=>{if(!S.data)return;S.data.crown={...S.data.crownAuto};["width","height","back","crown"].forEach((id,i)=>E[id].value=[118,118,14,0][i]);draw();setStatus("Réglages remis à zéro.","ok")});
 E.export.addEventListener("click",()=>{if(!S.img)return;draw();const a=document.createElement("a");a.download=S.name+"-geometry-v1.png";a.href=E.canvas.toDataURL("image/png");a.click()});
 ["sphere","brow","center","equator","handles","width","height","back","crown","opacity","stroke"].forEach(id=>E[id].addEventListener("input",draw));
 init();
