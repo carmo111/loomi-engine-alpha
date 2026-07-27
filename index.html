@@ -17,7 +17,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:10p
 .brand{font-weight:850}.brand b{color:var(--accent)}
 .status{font-size:12px;color:#75d3aa}
 .stage{position:relative;min-height:0;background:#020304;overflow:hidden;touch-action:none}
-#photo{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none;user-select:none}
+#photo{display:block;position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none;user-select:none}
 #canvasWrap{position:absolute;inset:0}
 .empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--muted);padding:25px;pointer-events:none}
 .empty b{display:block;color:#fff;font-size:21px;margin-bottom:7px}
@@ -51,7 +51,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:10p
 <div class="app">
 <header>
   <div class="brand">Loomi 3D <b>Skull V2</b></div>
-  <div class="status">Crâne renforcé</div>
+  <div id="status" class="status">Crâne renforcé</div>
 </header>
 
 <section id="stage" class="stage">
@@ -59,7 +59,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:10p
   <div id="canvasWrap"></div>
 
   <div class="topbar">
-    <label class="file btn primary">📷 Photo<input id="file" type="file" accept="image/*"></label>
+    <label class="file btn primary">📷 Photo<input id="file" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/*"></label>
     <div style="display:flex;gap:7px">
       <button id="reset" class="btn">↺</button>
       <button id="settings" class="btn">⚙️</button>
@@ -372,9 +372,38 @@ document.querySelectorAll("[data-preset]").forEach(b=>b.addEventListener("click"
 }));
 
 ["yaw","pitch","roll"].forEach(id=>$(id).addEventListener("input",syncRotation));
+let currentPhotoUrl=null;
 $("file").addEventListener("change",e=>{
-  const f=e.target.files?.[0];if(!f)return;
-  const r=new FileReader();r.onload=()=>{photo.src=r.result;empty.style.display="none"};r.readAsDataURL(f);
+  const input=e.currentTarget;
+  const f=input.files && input.files[0];
+  if(!f){
+    tip.textContent="Aucune photo sélectionnée";
+    return;
+  }
+
+  if(!f.type.startsWith("image/")){
+    tip.textContent="Ce fichier n'est pas une image compatible";
+    input.value="";
+    return;
+  }
+
+  if(currentPhotoUrl){
+    URL.revokeObjectURL(currentPhotoUrl);
+  }
+
+  currentPhotoUrl=URL.createObjectURL(f);
+  photo.onload=()=>{
+    empty.style.display="none";
+    tip.textContent="Photo chargée. Place maintenant le crâne.";
+  };
+  photo.onerror=()=>{
+    empty.style.display="grid";
+    tip.textContent="Impossible de lire cette photo. Essaie une image JPG ou PNG.";
+    URL.revokeObjectURL(currentPhotoUrl);
+    currentPhotoUrl=null;
+    input.value="";
+  };
+  photo.src=currentPhotoUrl;
 });
 $("settings").addEventListener("click",()=>$("panel").classList.toggle("open"));
 ["showVolume","showWire","showPlanes","showJaw"].forEach(id=>$(id).addEventListener("input",applyVisibility));

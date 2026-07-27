@@ -1,15 +1,12 @@
-# Loomi 3D Skull V2
+# Loomi 3D Skull V2.1
 
-Améliorations :
-- front plus plat ;
-- arcades sourcilières ;
-- orbites ;
-- pommettes ;
-- nez osseux simplifié ;
-- mâchoire plus anguleuse ;
-- rotation gauche/droite ;
-- inclinaison haut/bas ;
-- inclinaison latérale ;
-- contrôles tactiles et curseurs précis.
+Correctif du chargement des photos sur mobile.
 
-Pour mettre à jour le site, remplace `index.html` dans le dépôt `loomi-engine-alpha`.
+## Corrections
+- chargement par URL locale plus fiable ;
+- aperçu immédiat après sélection ;
+- message d’erreur si le format n’est pas pris en charge ;
+- meilleure compatibilité JPG, PNG, WebP, HEIC et HEIF ;
+- aucune donnée envoyée sur Internet.
+
+Pour mettre à jour le site, remplace le fichier `index.html` du dépôt `loomi-engine-alpha`.
