@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Loomi Engine V3.3 Cranium Fix</title>
+<title>Loomi Engine V3.4 Landmarks</title>
 <style>
 :root{--bg:#090c0e;--panel:#151a1e;--panel2:#20272c;--line:#354047;--text:#f6f7f8;--muted:#9ca7ad;--gold:#e8b25e;--green:#57d7a2;--red:#ff7878}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -30,7 +30,7 @@ canvas{display:block;max-width:100%;max-height:100%;touch-action:none}.empty{tex
 </head>
 <body>
 <header>
-<div><small>LOOMI METHOD</small><h1>Loomi Engine <b>V3.3 Cranium Fix</b></h1></div>
+<div><small>LOOMI METHOD</small><h1>Loomi Engine <b>V3.4 Landmarks</b></h1></div>
 <span id="badge" class="badge">Chargement du moteur…</span>
 </header>
 
@@ -55,6 +55,7 @@ canvas{display:block;max-width:100%;max-height:100%;touch-action:none}.empty{tex
 <label><input id="side" type="checkbox" checked> Plan latéral</label>
 <label><input id="jaw" type="checkbox" checked> Bloc de mâchoire</label>
 <label><input id="axis" type="checkbox" checked> Axe central</label>
+<label><input id="forehead" type="checkbox" checked> Ligne du front / cheveux</label>
 <label><input id="brow" type="checkbox" checked> Ligne des sourcils</label>
 <label><input id="eyes" type="checkbox" checked> Ligne des yeux</label>
 <label><input id="nose" type="checkbox" checked> Ligne du nez</label>
@@ -109,6 +110,7 @@ canvas{display:block;max-width:100%;max-height:100%;touch-action:none}.empty{tex
 <span class="dot" style="background:#9d6cff"></span>Plan latéral<br>
 <span class="dot" style="background:#ff759f"></span>Mâchoire<br>
 <span class="dot" style="background:#54d5a0"></span>Axe central<br>
+<span class="dot" style="background:#f5d06f"></span>Front / implantation des cheveux<br>
 <span class="dot" style="background:#4db4ff"></span>Repères du visage
 </p>
 </section>
@@ -121,7 +123,7 @@ canvas{display:block;max-width:100%;max-height:100%;touch-action:none}.empty{tex
 "use strict";
 const $=id=>document.getElementById(id);
 const E={file:$("file"),canvas:$("canvas"),preview:$("preview"),empty:$("empty"),status:$("status"),badge:$("badge"),analyze:$("analyze"),manual:$("manual"),reset:$("reset"),export:$("export"),loader:$("loader"),overlay:$("manualOverlay"),prompt:$("manualPrompt"),progress:$("manualProgress"),count:$("manualCount"),undo:$("undo"),cancel:$("cancel"),yaw:$("yaw"),pitch:$("pitch"),roll:$("roll")};
-["skull","side","jaw","axis","brow","eyes","nose","mouth","opacity","width","scale","skullWidth","skullHeight","sideSize","jawWidth","ox","oy"].forEach(id=>E[id]=$(id));
+["skull","side","jaw","axis","forehead","brow","eyes","nose","mouth","opacity","width","scale","skullWidth","skullHeight","sideSize","jawWidth","ox","oy"].forEach(id=>E[id]=$(id));
 const ctx=E.canvas.getContext("2d"),pctx=E.preview.getContext("2d");
 const S={image:null,name:"loomi",mesh:null,ready:false,fit:null,manual:false,manualPoints:[]};
 const prompts=["l’œil gauche de la personne","l’œil droit de la personne","la pointe du nez","le bas du menton","la tempe gauche","la tempe droite","le sommet du crâne","le centre de la bouche"];
@@ -142,29 +144,43 @@ function localPoint(f,x,y){return add(add(f.origin,mul(f.xAxis,x)),mul(f.yAxis,y
 function shifted(p,o){return{x:p.x+o.ox,y:p.y+o.oy}}
 
 function build(a){
- const eyeCenter=mid(a.el,a.er), eyeSpan=dist(a.el,a.er), templeSpan=dist(a.tl,a.tr), faceH=dist(a.top,a.ch);
+ const eyeCenter=mid(a.el,a.er), eyeSpan=dist(a.el,a.er), templeSpan=dist(a.tl,a.tr);
  const xAxis=norm(sub(a.er,a.el)), yAxis=perp(xAxis);
  if(yAxis.y<0){yAxis.x*=-1;yAxis.y*=-1}
+ const eyeToChin=Math.max(1,dot(sub(a.ch,eyeCenter),yAxis));
+ // En analyse automatique, le sommet est estimé au-dessus de l'implantation des cheveux.
+ // En mode manuel, le point fourni est déjà le vrai sommet du crâne.
+ const crown=a.crown || a.top;
+ const faceH=dist(crown,a.ch);
  const noseOffset=dot(sub(a.no,eyeCenter),xAxis);
  const roll=Math.atan2(xAxis.y,xAxis.x);
  const yaw=clamp(noseOffset/(eyeSpan*.55),-.95,.95);
- const eyeToChin=dot(sub(a.ch,eyeCenter),yAxis);
- const topToEye=dot(sub(eyeCenter,a.top),yAxis);
- const pitch=clamp((topToEye/Math.max(1,eyeToChin)-.48)*.9,-.45,.45);
- const skullW=Math.max(templeSpan*1.03,eyeSpan*2.02);
- const skullH=Math.max(faceH*.66,skullW*.90);
+ const topToEye=dot(sub(eyeCenter,crown),yAxis);
+ const pitch=clamp((topToEye/eyeToChin-.72)*.65,-.45,.45);
+ const skullW=Math.max(templeSpan*1.04,eyeSpan*2.05);
+ const skullH=Math.max(faceH*.70,skullW*.92);
  const origin=add(eyeCenter,mul(yAxis,-skullH*.20));
  const toLocal=p=>({x:dot(sub(p,origin),xAxis),y:dot(sub(p,origin),yAxis)});
+ const all={...a,top:crown};
  const L={};
- Object.keys(a).forEach(k=>{if(a[k]&&typeof a[k].x==="number")L[k]=toLocal(a[k])});
- return{a,origin,xAxis,yAxis,skullW,skullH,yaw,pitch,roll,L};
+ Object.keys(all).forEach(k=>{if(all[k]&&typeof all[k].x==="number")L[k]=toLocal(all[k])});
+ return{a:all,origin,xAxis,yAxis,skullW,skullH,yaw,pitch,roll,L};
 }
 function dot(a,b){return a.x*b.x+a.y*b.y}
 function fromLandmarks(lm){
  const P=i=>({x:lm[i].x*E.canvas.width,y:lm[i].y*E.canvas.height});
+ const el=mid(P(33),P(133)), er=mid(P(362),P(263)), eyeCenter=mid(el,er);
+ const hairC=P(10), up=norm(sub(hairC,eyeCenter));
+ const crown=add(hairC,mul(up,dist(eyeCenter,P(152))*.30));
+ const avg=ids=>{
+   const pts=ids.map(P);
+   return {x:pts.reduce((s,p)=>s+p.x,0)/pts.length,y:pts.reduce((s,p)=>s+p.y,0)/pts.length};
+ };
  return build({
-   el:mid(P(33),P(133)),er:mid(P(362),P(263)),no:P(1),ch:P(152),
-   tl:P(234),tr:P(454),top:P(10),mo:P(13),
+   el,er,no:P(1),noseBase:avg([2,94,97,326]),ch:P(152),
+   tl:P(234),tr:P(454),top:crown,crown,mo:P(13),
+   browL:avg([70,63,105,66,107]),browR:avg([336,296,334,293,300]),
+   hairL:P(109),hairC,hairR:P(338),
    cheekL:P(123),cheekR:P(352),jawL:P(172),jawR:P(397),
    earL:P(127),earR:P(356)
  });
@@ -180,7 +196,12 @@ function fromManual(p){
  const jawY=dot(sub(ch,eyeCenter),yAxis)-faceH*.14;
  const jawL=add(eyeCenter,add(mul(xAxis,-templeSpan*.31),mul(yAxis,jawY)));
  const jawR=add(eyeCenter,add(mul(xAxis, templeSpan*.31),mul(yAxis,jawY)));
- return build({el,er,no,ch,tl,tr,top,mo,cheekL,cheekR,jawL,jawR,earL:tl,earR:tr});
+ const browY=dot(sub(eyeCenter,top),yAxis)*-.18;
+ const browL=add(el,mul(yAxis,-faceH*.045)), browR=add(er,mul(yAxis,-faceH*.045));
+ const hairC=add(top,mul(yAxis,faceH*.20));
+ const hairL=add(hairC,mul(xAxis,-templeSpan*.34)), hairR=add(hairC,mul(xAxis,templeSpan*.34));
+ const noseBase=add(no,mul(yAxis,faceH*.045));
+ return build({el,er,no,noseBase,ch,tl,tr,top,crown:top,mo,browL,browR,hairL,hairC,hairR,cheekL,cheekR,jawL,jawR,earL:tl,earR:tr});
 }
 
 function stroke(c,draw,color,w,alpha=1,dash=[]){
@@ -198,7 +219,11 @@ function poly(c,pts,color,w,alpha){
 function geometry(f,o){
  const scale=o.scale, sw=f.skullW*o.sw*scale, sh=f.skullH*o.sh*scale;
  const backShift=-f.yaw*sw*.16;
- const center=shifted(localPoint(f,backShift,-sh*.10),o), angle=f.roll;
+ const crownY=f.L.top.y;
+ const skullBaseY=Math.max((f.L.tl.y+f.L.tr.y)/2+sh*.28, browY+sh*.34);
+ const skullCenterY=(crownY+skullBaseY)/2;
+ const skullRy=Math.max(sh*.44,(skullBaseY-crownY)/2);
+ const center=shifted(localPoint(f,backShift,skullCenterY),o), angle=f.roll;
  // Le plan latéral se place à l’arrière du crâne, donc à l’opposé du nez.
  const sideSign=f.yaw>=0?-1:1;
  const visibleTemple=sideSign>0?(f.L.tr||{x:sw*.45,y:0}):(f.L.tl||{x:-sw*.45,y:0});
@@ -208,9 +233,9 @@ function geometry(f,o){
  const yawOpen=.58+.42*Math.abs(f.yaw);
  const sideRx=sw*(.145+.045*yawOpen)*o.side;
  const sideRy=sh*.255*o.side;
- const browY=(f.L.el.y+f.L.er.y)/2-sh*.11;
+ const browY=((f.L.browL||f.L.el).y+(f.L.browR||f.L.er).y)/2;
  const eyeY=(f.L.el.y+f.L.er.y)/2;
- const noseY=f.L.no.y;
+ const noseY=(f.L.noseBase||f.L.no).y;
  const mouthY=f.L.mo.y;
  const chinY=f.L.ch.y;
  const contour=(y,curveAmount)=>{
@@ -240,11 +265,26 @@ function geometry(f,o){
    sideR:shifted(localPoint(f,backShift+sw*.575,-sh*.12),o),
    upperR:shifted(localPoint(f,backShift+sw*.40,-sh*.555),o)
  };
+ const hairL=f.L.hairL||{x:-sw*.34,y:crownY+skullRy*.45};
+ const hairC=f.L.hairC||{x:0,y:crownY+skullRy*.40};
+ const hairR=f.L.hairR||{x:sw*.34,y:crownY+skullRy*.45};
+ const forehead=[
+   shifted(localPoint(f,hairL.x,hairL.y),o),
+   shifted(localPoint(f,hairC.x+f.yaw*sw*.07,hairC.y-sh*.015),o),
+   shifted(localPoint(f,hairR.x,hairR.y),o)
+ ];
+ const browLeft=f.L.browL||{x:-sw*.22,y:browY};
+ const browRight=f.L.browR||{x:sw*.22,y:browY};
+ const browCurve=[
+   shifted(localPoint(f,browLeft.x-sw*.035,browLeft.y),o),
+   shifted(localPoint(f,(browLeft.x+browRight.x)/2+f.yaw*sw*.10,browY-sh*.018),o),
+   shifted(localPoint(f,browRight.x+sw*.035,browRight.y),o)
+ ];
  const sideFront=shifted(localPoint(f,sideCx-sideSign*sideRx*.95,sideCy),o);
  const sideBack=shifted(localPoint(f,sideCx+sideSign*sideRx*.95,sideCy),o);
  return{
-   center,sw,sh,angle,sideCenter,sideRx,sideRy,sideSign,sideFront,sideBack,skullPts,
-   brow:contour(browY,.18),eyes:contour(eyeY,.22),noseLine:contour(noseY,.28),mouthLine:contour(mouthY,.34),
+   center,sw,sh,skullRy,angle,sideCenter,sideRx,sideRy,sideSign,sideFront,sideBack,skullPts,forehead,
+   brow:browCurve,eyes:contour(eyeY,.22),noseLine:contour(noseY,.28),mouthLine:contour(mouthY,.34),
    top,chin,nose,mouth,cheekL,cheekR,jawL,jawR
  };
 }
@@ -262,8 +302,8 @@ function render(c,preview=false){
  const g=geometry(f,o),w=o.width*(preview?1.25:1),a=o.opacity;
  if(E.skull.checked){
    // La masse crânienne englobe désormais toute la boîte crânienne et se décale vers l’arrière.
-   ellipse(c,g.center,g.sw*.575,g.sh*.575,g.angle,"#f3efe4",w,a);
-   ellipse(c,g.center,g.sw*.555,g.sh*.175,g.angle,"#f3efe4",w,a*.68,[7,7]);
+   ellipse(c,g.center,g.sw*.585,g.skullRy,g.angle,"#f3efe4",w,a);
+   ellipse(c,g.center,g.sw*.555,g.skullRy*.30,g.angle,"#f3efe4",w,a*.68,[7,7]);
  }
  if(E.side.checked){
    ellipse(c,g.sideCenter,g.sideRx,g.sideRy,g.angle,"#9d6cff",w,a);
@@ -279,6 +319,7 @@ function render(c,preview=false){
  if(E.axis.checked){
    curve(c,g.top,g.nose,g.chin,"#54d5a0",w,a);
  }
+ if(E.forehead.checked)curve(c,...g.forehead,"#f5d06f",w,a);
  if(E.brow.checked)curve(c,...g.brow,"#ffad5b",w,a);
  if(E.eyes.checked)curve(c,...g.eyes,"#4db4ff",w,a);
  if(E.nose.checked)curve(c,...g.noseLine,"#54d5a0",w,a);
@@ -381,7 +422,7 @@ E.canvas.addEventListener("pointerdown",ev=>{
 });
 E.reset.addEventListener("click",()=>{S.fit=null;S.manual=false;S.manualPoints=[];E.ox.value=0;E.oy.value=0;setStatus("Construction réinitialisée.");draw()});
 E.export.addEventListener("click",()=>{if(!S.image)return;draw();const a=document.createElement("a");a.download=S.name+"-loomi-v3-1.png";a.href=E.canvas.toDataURL("image/png");a.click()});
-["skull","side","jaw","axis","brow","eyes","nose","mouth","opacity","width","scale","skullWidth","skullHeight","sideSize","jawWidth","ox","oy"].forEach(id=>E[id].addEventListener("input",draw));
+["skull","side","jaw","axis","forehead","brow","eyes","nose","mouth","opacity","width","scale","skullWidth","skullHeight","sideSize","jawWidth","ox","oy"].forEach(id=>E[id].addEventListener("input",draw));
 initMesh();
 })();
 </script>
