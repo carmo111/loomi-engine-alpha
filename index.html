@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Loomi Geometry Engine V2</title>
+<title>Loomi Geometry Engine V2.1</title>
 <style>
 :root{--bg:#090b0d;--panel:#14191d;--panel2:#1d2429;--line:#344047;--text:#f7f8f9;--muted:#9ba7ad;--red:#ff4a2d;--green:#52d59c;--blue:#4cb4ff}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -26,7 +26,7 @@ canvas{display:block;max-width:100%;max-height:100%;touch-action:none}.empty{tex
 </head>
 <body>
 <header>
-<div><small>NEW GEOMETRY CORE</small><h1>Loomi Geometry Engine <b>V2</b></h1></div>
+<div><small>NEW GEOMETRY CORE</small><h1>Loomi Geometry Engine <b>V2.1</b></h1></div>
 <span id="badge" class="badge">Chargement…</span>
 </header>
 <div class="app">
@@ -57,8 +57,7 @@ canvas{display:block;max-width:100%;max-height:100%;touch-action:none}.empty{tex
 <section class="block">
 <h2>3. Réglages V1</h2>
 <div class="controls">
-<label>Largeur du crâne<input id="width" type="range" min="80" max="145" value="118"></label>
-<label>Hauteur du crâne<input id="height" type="range" min="80" max="145" value="118"></label>
+<label>Taille du cercle<input id="radius" type="range" min="82" max="125" value="100"></label>
 <label>Décalage arrière<input id="back" type="range" min="-35" max="35" value="14"></label>
 <label>Sommet du crâne<input id="crown" type="range" min="-30" max="35" value="0"></label>
 <label>Opacité<input id="opacity" type="range" min="20" max="100" value="92"></label>
@@ -67,7 +66,7 @@ canvas{display:block;max-width:100%;max-height:100%;touch-action:none}.empty{tex
 </section>
 
 <section class="block">
-<p class="note"><b>Principe V2 :</b> MediaPipe mesure le visage, puis Loomi reconstruit une sphère plus large, légèrement décalée vers l’arrière et avec un axe stabilisé. Le point rouge du sommet reste déplaçable.</p>
+<p class="note"><b>Principe V2.1 :</b> Loomi utilise maintenant un seul rayon : le contour est toujours un cercle parfait. Le centre est calculé depuis le sommet pour éviter que la sphère descende vers les épaules.</p>
 </section>
 </aside>
 
@@ -87,7 +86,7 @@ canvas{display:block;max-width:100%;max-height:100%;touch-action:none}.empty{tex
 "use strict";
 const $=id=>document.getElementById(id);
 const E={file:$("file"),canvas:$("canvas"),empty:$("empty"),status:$("status"),badge:$("badge"),analyze:$("analyze"),manual:$("manual"),reset:$("reset"),export:$("export"),loader:$("loader")};
-["sphere","brow","center","equator","handles","width","height","back","crown","opacity","stroke"].forEach(id=>E[id]=$(id));
+["sphere","brow","center","equator","handles","radius","back","crown","opacity","stroke"].forEach(id=>E[id]=$(id));
 const ctx=E.canvas.getContext("2d");
 const S={img:null,name:"loomi",mesh:null,ready:false,data:null,drag:false,placing:false};
 const mid=(a,b)=>({x:(a.x+b.x)/2,y:(a.y+b.y)/2});
@@ -144,50 +143,50 @@ function makeData(lm){
    templeL,templeR,yaw,backSign,crown:crownAuto,crownAuto
  };
 }
-function opts(){return{w:+E.width.value/100,h:+E.height.value/100,back:+E.back.value/100,crown:+E.crown.value/100,a:+E.opacity.value/100,s:+E.stroke.value}}
+function opts(){return{radius:+E.radius.value/100,back:+E.back.value/100,crown:+E.crown.value/100,a:+E.opacity.value/100,s:+E.stroke.value}}
 function geometry(){
  if(!S.data)return null;
- const d=S.data,o=opts(), eyeToChin=Math.max(1,dot(sub(d.chin,d.eyeCenter),d.y));
+
+ const d=S.data,o=opts();
+ const eyeToChin=Math.max(1,dot(sub(d.chin,d.eyeCenter),d.y));
  const templeSpan=len(sub(d.templeR,d.templeL));
-
- // Sphère un peu plus généreuse, comme sur la correction de référence.
- const baseW=Math.max(templeSpan*1.36,d.eyeSpan*2.64);
- const rx=baseW*.50*o.w;
-
  const browLocal=local(d,d.browMid);
+
+ // Une seule mesure : le rayon du cercle Loomis.
+ // Le cercle est calibré par les tempes et la distance yeux-menton.
+ const radiusFromTemples=templeSpan*.62;
+ const radiusFromFace=eyeToChin*.82;
+ const r=Math.max(radiusFromTemples,radiusFromFace)*o.radius;
+
  const crownBase=add(d.crown,mul(d.y,-eyeToChin*o.crown));
  const crownLocal=local(d,crownBase);
 
- // Le bas de la sphère descend légèrement sous le menton, comme une vraie masse crânienne.
- const lowerY=Math.max(
-   local(d,d.chin).y+eyeToChin*.09,
-   browLocal.y+eyeToChin*.60
- );
+ // Le centre est calculé depuis le sommet : top = center - r.
+ // Cela garantit un cercle parfait et empêche le bas de glisser vers les épaules.
+ const centerY=crownLocal.y+r;
 
- const ry=Math.max(rx*.93,(lowerY-crownLocal.y)/2)*o.h;
- const centerY=crownLocal.y+ry;
-
- // Décalage arrière renforcé, mais contenu.
- const backOffset=d.backSign*rx*(.20+o.back);
+ // Petit décalage vers l'arrière de la boîte crânienne.
+ const backOffset=d.backSign*r*(.07+o.back*.25);
 
  const center=world(d,backOffset,centerY);
- const top=world(d,backOffset,centerY-ry);
- const bottom=world(d,backOffset,centerY+ry);
+ const top=world(d,backOffset,centerY-r);
+ const bottom=world(d,backOffset,centerY+r);
 
  const browY=browLocal.y;
- const browA=world(d,-rx*.96,browY), browB=world(d,rx*.96,browY);
- const browM=world(d,d.yaw*rx*.12,browY-ry*.025*Math.abs(d.yaw));
+ const browA=world(d,-r*.94,browY);
+ const browB=world(d, r*.94,browY);
+ const browM=world(d,d.yaw*r*.10,browY-r*.02*Math.abs(d.yaw));
 
- const equatorA=world(d,-rx*.98,centerY), equatorB=world(d,rx*.98,centerY);
- const equatorM=world(d,d.yaw*rx*.18,centerY-ry*.025*Math.abs(d.yaw));
+ const equatorA=world(d,-r*.98,centerY);
+ const equatorB=world(d, r*.98,centerY);
+ const equatorM=world(d,d.yaw*r*.14,centerY-r*.02*Math.abs(d.yaw));
 
- // Axe plus droit, proche de la correction manuelle.
  const axisTop=top;
- const axisBottom=world(d,d.yaw*rx*.12,lowerY-eyeToChin*.10);
- const axisMid=world(d,d.yaw*rx*.08,browY);
+ const axisMid=world(d,d.yaw*r*.06,browY);
+ const axisBottom=world(d,d.yaw*r*.10,Math.min(local(d,d.chin).y,centerY+r*.68));
 
  return{
-   ...o,rx,ry,center,top,bottom,browA,browB,browM,
+   ...o,r,center,top,bottom,browA,browB,browM,
    equatorA,equatorB,equatorM,axisTop,axisMid,axisBottom
  };
 }
@@ -204,7 +203,7 @@ function draw(){
  const g=geometry();if(!g)return;
  const angle=Math.atan2(S.data.x.y,S.data.x.x);
  if(E.sphere.checked){
-   ctx.save();ctx.strokeStyle="#ff4a2d";ctx.lineWidth=g.s;ctx.globalAlpha=g.a;ctx.beginPath();ctx.ellipse(g.center.x,g.center.y,g.rx,g.ry,angle,0,Math.PI*2);ctx.stroke();ctx.restore();
+   ctx.save();ctx.strokeStyle="#ff4a2d";ctx.lineWidth=g.s;ctx.globalAlpha=g.a;ctx.beginPath();ctx.arc(g.center.x,g.center.y,g.r,0,Math.PI*2);ctx.stroke();ctx.restore();
  }
  if(E.brow.checked)curve(g.browA,g.browM,g.browB,"#ff4a2d",g.s,g.a);
  if(E.equator.checked)curve(g.equatorA,g.equatorM,g.equatorB,"#ff9a86",g.s*.75,g.a*.75,[7,7]);
@@ -258,9 +257,9 @@ async function init(){
 E.file.addEventListener("change",e=>importPhoto(e.target.files&&e.target.files[0]));
 E.analyze.addEventListener("click",analyze);
 E.manual.addEventListener("click",()=>{if(!S.data){setStatus("Analyse d’abord le visage.","err");return}S.placing=true;setStatus("Clique sur le vrai sommet du crâne.","ok")});
-E.reset.addEventListener("click",()=>{if(!S.data)return;S.data.crown={...S.data.crownAuto};["width","height","back","crown"].forEach((id,i)=>E[id].value=[118,118,14,0][i]);draw();setStatus("Réglages remis à zéro.","ok")});
+E.reset.addEventListener("click",()=>{if(!S.data)return;S.data.crown={...S.data.crownAuto};["radius","back","crown"].forEach((id,i)=>E[id].value=[100,8,0][i]);draw();setStatus("Réglages remis à zéro.","ok")});
 E.export.addEventListener("click",()=>{if(!S.img)return;draw();const a=document.createElement("a");a.download=S.name+"-geometry-v1.png";a.href=E.canvas.toDataURL("image/png");a.click()});
-["sphere","brow","center","equator","handles","width","height","back","crown","opacity","stroke"].forEach(id=>E[id].addEventListener("input",draw));
+["sphere","brow","center","equator","handles","radius","back","crown","opacity","stroke"].forEach(id=>E[id].addEventListener("input",draw));
 init();
 })();
 </script>

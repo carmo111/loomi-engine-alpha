@@ -1,12 +1,13 @@
-# Loomi Geometry Engine V2
+# Loomi Geometry Engine V2.1
 
-Rectifications réalisées à partir de la comparaison entre le résultat automatique et la correction manuelle :
+Correction fondamentale du crâne :
 
-- sphère légèrement plus grande ;
-- sommet automatique placé plus haut ;
-- centre décalé davantage vers l’arrière du crâne ;
-- axe central moins incliné ;
-- bas de la sphère légèrement abaissé ;
-- courbes horizontales moins déformées.
+- suppression du rayon horizontal et du rayon vertical séparés ;
+- utilisation d'un seul rayon ;
+- contour toujours parfaitement circulaire ;
+- centre calculé à partir du sommet du crâne ;
+- taille réduite pour ne plus descendre vers les épaules ;
+- léger décalage arrière conservé ;
+- sommet toujours déplaçable manuellement.
 
-Le plan latéral et la mâchoire restent volontairement absents.
+Le plan latéral et la mâchoire restent absents.
