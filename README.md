@@ -1,13 +1,13 @@
-# Loomi Geometry Engine V2.1
+# Loomi Geometry Engine V3
 
-Correction fondamentale du crâne :
+Nouvelle logique de sphère :
 
-- suppression du rayon horizontal et du rayon vertical séparés ;
-- utilisation d'un seul rayon ;
-- contour toujours parfaitement circulaire ;
-- centre calculé à partir du sommet du crâne ;
-- taille réduite pour ne plus descendre vers les épaules ;
-- léger décalage arrière conservé ;
-- sommet toujours déplaçable manuellement.
+- cercle toujours parfaitement rond ;
+- centre déplacé vers l'arrière de la boîte crânienne ;
+- déplacement arrière modulé par la rotation de la tête ;
+- visage traité comme une surface posée sur l'avant de la sphère ;
+- axe central reconstruit comme un axe volumique ;
+- ligne des sourcils raccourcie du côté fuyant ;
+- plan latéral et mâchoire toujours volontairement absents.
 
-Le plan latéral et la mâchoire restent absents.
+Le point rouge du sommet reste déplaçable.

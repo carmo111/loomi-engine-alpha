@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Loomi Geometry Engine V2.1</title>
+<title>Loomi Geometry Engine V3</title>
 <style>
 :root{--bg:#090b0d;--panel:#14191d;--panel2:#1d2429;--line:#344047;--text:#f7f8f9;--muted:#9ba7ad;--red:#ff4a2d;--green:#52d59c;--blue:#4cb4ff}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -26,7 +26,7 @@ canvas{display:block;max-width:100%;max-height:100%;touch-action:none}.empty{tex
 </head>
 <body>
 <header>
-<div><small>NEW GEOMETRY CORE</small><h1>Loomi Geometry Engine <b>V2.1</b></h1></div>
+<div><small>NEW GEOMETRY CORE</small><h1>Loomi Geometry Engine <b>V3</b></h1></div>
 <span id="badge" class="badge">Chargement…</span>
 </header>
 <div class="app">
@@ -66,7 +66,7 @@ canvas{display:block;max-width:100%;max-height:100%;touch-action:none}.empty{tex
 </section>
 
 <section class="block">
-<p class="note"><b>Principe V2.1 :</b> Loomi utilise maintenant un seul rayon : le contour est toujours un cercle parfait. Le centre est calculé depuis le sommet pour éviter que la sphère descende vers les épaules.</p>
+<p class="note"><b>Principe V3 :</b> Loomi place maintenant la sphère dans la boîte crânienne, puis projette le visage sur sa partie avant. Le cercle reste parfait et son centre recule selon l’orientation de la tête.</p>
 </section>
 </aside>
 
@@ -151,39 +151,71 @@ function geometry(){
  const eyeToChin=Math.max(1,dot(sub(d.chin,d.eyeCenter),d.y));
  const templeSpan=len(sub(d.templeR,d.templeL));
  const browLocal=local(d,d.browMid);
+ const chinLocal=local(d,d.chin);
+ const noseLocal=local(d,d.nose);
 
- // Une seule mesure : le rayon du cercle Loomis.
- // Le cercle est calibré par les tempes et la distance yeux-menton.
- const radiusFromTemples=templeSpan*.62;
- const radiusFromFace=eyeToChin*.82;
+ // Rayon unique. La taille reste proche de la V2.1,
+ // mais le centre n'est plus dérivé directement du visage.
+ const radiusFromTemples=templeSpan*.64;
+ const radiusFromFace=eyeToChin*.79;
  const r=Math.max(radiusFromTemples,radiusFromFace)*o.radius;
 
  const crownBase=add(d.crown,mul(d.y,-eyeToChin*o.crown));
  const crownLocal=local(d,crownBase);
 
- // Le centre est calculé depuis le sommet : top = center - r.
- // Cela garantit un cercle parfait et empêche le bas de glisser vers les épaules.
+ // Centre vertical de la boîte crânienne.
+ // Le sommet reste la référence, mais le bas est limité avant le cou.
  const centerY=crownLocal.y+r;
 
- // Petit décalage vers l'arrière de la boîte crânienne.
- const backOffset=d.backSign*r*(.07+o.back*.25);
+ // Le visage est posé sur l'avant de la sphère.
+ // Plus la tête tourne, plus le volume arrière devient visible.
+ const yawAmount=Math.abs(d.yaw);
+ const baseBack=.18;
+ const yawBack=.10*yawAmount;
+ const manualBack=o.back*.18;
+ const backOffset=d.backSign*r*(baseBack+yawBack+manualBack);
 
  const center=world(d,backOffset,centerY);
  const top=world(d,backOffset,centerY-r);
  const bottom=world(d,backOffset,centerY+r);
 
+ // La ligne des sourcils devient une ligne de construction
+ // légèrement raccourcie du côté fuyant.
  const browY=browLocal.y;
- const browA=world(d,-r*.94,browY);
- const browB=world(d, r*.94,browY);
- const browM=world(d,d.yaw*r*.10,browY-r*.02*Math.abs(d.yaw));
+ const frontSide=d.backSign>0?-1:1;
+ const leftScale=frontSide<0?1:.82;
+ const rightScale=frontSide>0?1:.82;
+ const browA=world(d,-r*.92*leftScale,browY);
+ const browB=world(d, r*.92*rightScale,browY);
+ const browM=world(
+   d,
+   d.yaw*r*.18,
+   browY-r*(.045+.015*yawAmount)
+ );
 
+ // Équateur volumique de la sphère.
  const equatorA=world(d,-r*.98,centerY);
  const equatorB=world(d, r*.98,centerY);
- const equatorM=world(d,d.yaw*r*.14,centerY-r*.02*Math.abs(d.yaw));
+ const equatorM=world(d,d.yaw*r*.24,centerY-r*.035*yawAmount);
 
+ // Axe central volumique :
+ // il part du sommet du volume, traverse l'avant de la sphère,
+ // puis rejoint la base du nez sans filer jusqu'au menton.
  const axisTop=top;
- const axisMid=world(d,d.yaw*r*.06,browY);
- const axisBottom=world(d,d.yaw*r*.10,Math.min(local(d,d.chin).y,centerY+r*.68));
+ const axisMid=world(
+   d,
+   d.yaw*r*.22,
+   browY-r*.02
+ );
+ const axisBottomY=Math.min(
+   noseLocal.y+eyeToChin*.06,
+   chinLocal.y-eyeToChin*.26
+ );
+ const axisBottom=world(
+   d,
+   noseLocal.x+d.yaw*r*.05,
+   axisBottomY
+ );
 
  return{
    ...o,r,center,top,bottom,browA,browB,browM,
@@ -257,7 +289,7 @@ async function init(){
 E.file.addEventListener("change",e=>importPhoto(e.target.files&&e.target.files[0]));
 E.analyze.addEventListener("click",analyze);
 E.manual.addEventListener("click",()=>{if(!S.data){setStatus("Analyse d’abord le visage.","err");return}S.placing=true;setStatus("Clique sur le vrai sommet du crâne.","ok")});
-E.reset.addEventListener("click",()=>{if(!S.data)return;S.data.crown={...S.data.crownAuto};["radius","back","crown"].forEach((id,i)=>E[id].value=[100,8,0][i]);draw();setStatus("Réglages remis à zéro.","ok")});
+E.reset.addEventListener("click",()=>{if(!S.data)return;S.data.crown={...S.data.crownAuto};["radius","back","crown"].forEach((id,i)=>E[id].value=[100,0,0][i]);draw();setStatus("Réglages remis à zéro.","ok")});
 E.export.addEventListener("click",()=>{if(!S.img)return;draw();const a=document.createElement("a");a.download=S.name+"-geometry-v1.png";a.href=E.canvas.toDataURL("image/png");a.click()});
 ["sphere","brow","center","equator","handles","radius","back","crown","opacity","stroke"].forEach(id=>E[id].addEventListener("input",draw));
 init();
