@@ -1,14 +1,25 @@
-# Loomi Geometry Engine V5
+# Loomi Geometry Engine 2.0
 
-Objectif principal : corriger un diamètre trop grand.
+Nouvelle base anatomique indépendante.
 
-## Changements
-- rayon réduit d'environ 12 % ;
-- calcul du rayon moins dépendant de la largeur apparente du visage ;
-- pondération basée sur hauteur sourcils-menton, yeux, tempes et pommettes ;
-- sphère légèrement remontée ;
-- décalage arrière conservé mais mieux contenu ;
-- pose adaptative de la V4 conservée ;
-- cercle toujours parfaitement rond.
+## Architecture
+1. MediaPipe mesure le visage.
+2. Le moteur calcule un repère local de tête.
+3. Un modèle anatomique reconstruit la boîte crânienne.
+4. La sphère Loomis est placée selon la pose.
 
-Le plan latéral et la mâchoire restent absents.
+## Mesures utilisées
+- écartement des yeux ;
+- largeur des tempes ;
+- largeur des pommettes ;
+- hauteur sourcils-menton ;
+- yaw ;
+- roll ;
+- asymétrie de perspective.
+
+## Réglages
+- taille anatomique ;
+- recul du crâne ;
+- hauteur du crâne.
+
+Le plan latéral et la mâchoire seront ajoutés après validation de cette base.

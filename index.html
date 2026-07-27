@@ -3,80 +3,90 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Loomi Geometry Engine V5</title>
+<title>Loomi Geometry Engine 2.0</title>
 <style>
-:root{--bg:#090b0d;--panel:#14191d;--panel2:#1d2429;--line:#344047;--text:#f7f8f9;--muted:#9ba7ad;--red:#ff4a2d;--green:#52d59c;--blue:#4cb4ff}
+:root{--bg:#090b0d;--panel:#14191d;--panel2:#1c2328;--line:#344047;--text:#f7f8f9;--muted:#9da8ae;--red:#ff4b2f;--green:#54d5a0;--blue:#4db4ff;--gold:#efb85f}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
 header{padding:13px 17px;background:#11161a;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:12px}
-h1{margin:0;font-size:21px}h1 b{color:var(--red)}header small{display:block;color:var(--red);font-weight:800;letter-spacing:.14em;margin-bottom:3px}
-.badge{padding:7px 11px;border:1px solid #4b5860;border-radius:999px;font-size:12px}.badge.ok{color:var(--green);border-color:#367b5e}.badge.err{color:#ff9b91;border-color:#81483f}
-.app{display:grid;grid-template-columns:300px minmax(0,1fr);min-height:calc(100vh - 68px)}
+h1{margin:0;font-size:21px}h1 b{color:var(--red)}header small{display:block;color:var(--red);font-weight:850;letter-spacing:.14em;margin-bottom:3px}
+.badge{padding:7px 11px;border:1px solid #4a565d;border-radius:999px;font-size:12px}.badge.ok{color:var(--green);border-color:#367b5e}.badge.err{color:#ff9b91;border-color:#81483f}
+.app{display:grid;grid-template-columns:310px minmax(0,1fr);min-height:calc(100vh - 68px)}
 aside{background:var(--panel);border-right:1px solid var(--line);padding:16px;overflow:auto}
 main{padding:10px;min-width:0}.stage{position:relative;min-height:650px;height:calc(100vh - 90px);display:flex;align-items:center;justify-content:center;background:#020304;border:1px solid var(--line);border-radius:15px;overflow:hidden}
 canvas{display:block;max-width:100%;max-height:100%;touch-action:none}.empty{text-align:center;color:var(--muted);padding:25px}.empty strong{display:block;color:#fff;font-size:20px;margin-bottom:7px}
 .block+.block{margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}h2{font-size:15px;margin:0 0 10px}.file{position:relative;display:block}.file span{display:block;padding:14px;text-align:center;border-radius:10px;background:var(--red);color:#fff;font-weight:850}.file input{position:absolute;inset:0;opacity:0;width:100%;height:100%}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}button{border:1px solid #46535b;background:#222a30;color:#fff;border-radius:9px;padding:10px;cursor:pointer}button:disabled{opacity:.4}.primary{background:var(--red);border-color:transparent;font-weight:850}
-.status{font-size:12px;line-height:1.45;background:var(--panel2);border-left:4px solid var(--red);padding:10px;border-radius:8px}.status.ok{border-color:var(--green)}.status.err{border-color:#ff6e5b}
+.status,.note{font-size:12px;line-height:1.48;background:var(--panel2);padding:10px;border-radius:8px}.status{border-left:4px solid var(--red)}.status.ok{border-color:var(--green)}.status.err{border-color:#ff6e5b}.note{color:#c8d0d4;border:1px solid #303a40}
 .controls{display:grid;gap:10px}.controls label{font-size:12px}.controls input[type=range]{width:100%;margin-top:5px}.checks{display:grid;gap:8px;font-size:13px}
-.note{font-size:12px;line-height:1.5;color:var(--muted);background:#101417;border:1px solid #303a40;padding:10px;border-radius:9px}
 .loader{position:absolute;inset:0;background:#020304d8;display:flex;align-items:center;justify-content:center}.loader[hidden]{display:none}.loader div{background:#151b1f;border:1px solid #445059;border-radius:12px;padding:17px}.spin{width:26px;height:26px;border:3px solid #48555d;border-top-color:var(--red);border-radius:50%;animation:s 1s linear infinite;margin:0 auto 9px}@keyframes s{to{transform:rotate(360deg)}}
-.legend{position:absolute;left:12px;bottom:12px;background:#090c0ed9;border:1px solid #39444b;border-radius:10px;padding:9px;font-size:11px;color:#cbd1d4;pointer-events:none}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.hud{position:absolute;left:12px;bottom:12px;background:#090c0ed9;border:1px solid #39444b;border-radius:10px;padding:9px;font-size:11px;color:#cbd1d4;pointer-events:none}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}.metrics{display:grid;grid-template-columns:1fr 1fr;gap:7px}.metric{background:#101417;border:1px solid #303a40;border-radius:8px;padding:8px}.metric b{display:block;font-size:15px;color:#fff}.metric span{font-size:10px;color:var(--muted)}
 @media(max-width:760px){.app{display:block}aside{border:0;border-bottom:1px solid var(--line)}main{padding:8px}.stage{height:auto;min-height:68vh}}
 </style>
 </head>
 <body>
 <header>
-<div><small>NEW GEOMETRY CORE</small><h1>Loomi Geometry Engine <b>V5</b></h1></div>
+<div><small>ANATOMICAL RECONSTRUCTION CORE</small><h1>Loomi Geometry Engine <b>2.0</b></h1></div>
 <span id="badge" class="badge">Chargement…</span>
 </header>
+
 <div class="app">
 <aside>
 <section class="block">
 <h2>1. Portrait</h2>
 <label class="file"><span>📷 Importer une photo</span><input id="file" type="file" accept="image/*"></label>
-<p id="status" class="status">Sphère recalibrée d’après ta correction manuelle.</p>
+<p id="status" class="status">La V2.0 reconstruit d’abord un modèle anatomique, puis place la sphère.</p>
 <div class="grid">
 <button id="analyze" class="primary" disabled>Analyser</button>
-<button id="manual" disabled>Placer sommet</button>
+<button id="placeCrown" disabled>Placer sommet</button>
 <button id="reset" disabled>Réinitialiser</button>
 <button id="export" disabled>Exporter PNG</button>
 </div>
 </section>
 
 <section class="block">
-<h2>2. Sphère crânienne</h2>
-<div class="checks">
-<label><input id="sphere" type="checkbox" checked> Grand contour du crâne</label>
-<label><input id="brow" type="checkbox" checked> Axe des sourcils</label>
-<label><input id="center" type="checkbox" checked> Axe central</label>
-<label><input id="equator" type="checkbox" checked> Équateur de la sphère</label>
-<label><input id="handles" type="checkbox" checked> Points de contrôle</label>
+<h2>2. Pose et mesures</h2>
+<p id="pose" class="note"><b>Pose :</b> en attente</p>
+<div class="metrics">
+<div class="metric"><b id="yaw">0°</b><span>Yaw</span></div>
+<div class="metric"><b id="roll">0°</b><span>Roll</span></div>
+<div class="metric"><b id="ratio">0</b><span>Ratio tête</span></div>
+<div class="metric"><b id="confidence">0%</b><span>Confiance</span></div>
 </div>
 </section>
 
 <section class="block">
-<h2>3. Réglages V1</h2>
+<h2>3. Affichage</h2>
+<div class="checks">
+<label><input id="sphere" type="checkbox" checked> Sphère crânienne</label>
+<label><input id="axis" type="checkbox" checked> Axe central</label>
+<label><input id="brow" type="checkbox" checked> Ligne des sourcils</label>
+<label><input id="equator" type="checkbox" checked> Équateur</label>
+<label><input id="anchors" type="checkbox" checked> Points anatomiques</label>
+</div>
+</section>
+
+<section class="block">
+<h2>4. Corrections</h2>
 <div class="controls">
-<label>Taille du cercle<input id="radius" type="range" min="78" max="115" value="88"></label>
-<label>Décalage arrière<input id="back" type="range" min="-20" max="100" value="28"></label>
-<label>Hauteur de la boîte crânienne<input id="lift" type="range" min="-25" max="45" value="12"></label>
-<label>Sommet du crâne<input id="crown" type="range" min="-30" max="35" value="0"></label>
+<label>Taille anatomique<input id="size" type="range" min="82" max="118" value="100"></label>
+<label>Recul du crâne<input id="back" type="range" min="-25" max="75" value="0"></label>
+<label>Hauteur du crâne<input id="lift" type="range" min="-25" max="45" value="0"></label>
 <label>Opacité<input id="opacity" type="range" min="20" max="100" value="92"></label>
 <label>Épaisseur<input id="stroke" type="range" min="1" max="7" value="3"></label>
 </div>
 </section>
 
 <section class="block">
-<p class="note"><b>Principe V5 :</b> Le moteur utilise maintenant un rayon anatomique plus contenu, réduit d’environ 12 %, puis remonte légèrement la sphère selon la pose.</p>
+<p class="note"><b>Architecture 2.0 :</b> MediaPipe mesure uniquement le visage. Un modèle anatomique indépendant estime ensuite la boîte crânienne à partir du triangle yeux–nez–menton, des tempes et de la rotation.</p>
 </section>
 </aside>
 
 <main>
-<div id="stage" class="stage">
+<div class="stage">
 <canvas id="canvas" width="1" height="1"></canvas>
-<div id="empty" class="empty"><strong>Geometry Engine V1</strong>Importe un portrait pour construire la sphère crânienne.</div>
-<div id="loader" class="loader" hidden><div><div class="spin"></div>Analyse géométrique…</div></div>
-<div class="legend"><span class="dot" style="background:#ff4a2d"></span>Sphère Loomis<br><span class="dot" style="background:#52d59c"></span>Axe central<br><span class="dot" style="background:#4cb4ff"></span>Repères mesurés</div>
+<div id="empty" class="empty"><strong>Geometry Engine 2.0</strong>Importe un portrait pour commencer.</div>
+<div id="loader" class="loader" hidden><div><div class="spin"></div>Analyse anatomique…</div></div>
+<div class="hud"><span class="dot" style="background:#ff4b2f"></span>Sphère<br><span class="dot" style="background:#54d5a0"></span>Axe<br><span class="dot" style="background:#4db4ff"></span>Mesures</div>
 </div>
 </main>
 </div>
@@ -86,361 +96,214 @@ canvas{display:block;max-width:100%;max-height:100%;touch-action:none}.empty{tex
 (function(){
 "use strict";
 const $=id=>document.getElementById(id);
-const E={file:$("file"),canvas:$("canvas"),empty:$("empty"),status:$("status"),poseStatus:$("poseStatus"),badge:$("badge"),analyze:$("analyze"),manual:$("manual"),reset:$("reset"),export:$("export"),loader:$("loader")};
-["sphere","brow","center","equator","handles","radius","back","lift","crown","opacity","stroke"].forEach(id=>E[id]=$(id));
+const E={file:$("file"),canvas:$("canvas"),empty:$("empty"),status:$("status"),pose:$("pose"),badge:$("badge"),analyze:$("analyze"),placeCrown:$("placeCrown"),reset:$("reset"),export:$("export"),loader:$("loader"),yaw:$("yaw"),roll:$("roll"),ratio:$("ratio"),confidence:$("confidence")};
+["sphere","axis","brow","equator","anchors","size","back","lift","opacity","stroke"].forEach(id=>E[id]=$(id));
 const ctx=E.canvas.getContext("2d");
-const S={img:null,name:"loomi",mesh:null,ready:false,data:null,drag:false,placing:false,busy:false,analysisTimer:null};
+const S={img:null,name:"loomi",data:null,busy:false,placing:false,drag:false,crownOverride:null};
 const mid=(a,b)=>({x:(a.x+b.x)/2,y:(a.y+b.y)/2});
-const sub=(a,b)=>({x:a.x-b.x,y:a.y-b.y});
 const add=(a,b)=>({x:a.x+b.x,y:a.y+b.y});
+const sub=(a,b)=>({x:a.x-b.x,y:a.y-b.y});
 const mul=(a,s)=>({x:a.x*s,y:a.y*s});
-const dot=(a,b)=>a.x*b.x+a.y*b.y;
 const len=v=>Math.hypot(v.x,v.y);
 const norm=v=>{const d=len(v)||1;return{x:v.x/d,y:v.y/d}};
+const dot=(a,b)=>a.x*b.x+a.y*b.y;
 const perp=v=>({x:-v.y,y:v.x});
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-function controlNumber(id,fallback){
- const el=E[id]||document.getElementById(id);
- if(!el)return fallback;
- const value=Number(el.value);
- return Number.isFinite(value)?value:fallback;
-}
-function bindInput(id,handler){
- const el=E[id]||document.getElementById(id);
- if(el)el.addEventListener("input",handler);
-}
-
-
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function setStatus(t,type=""){E.status.textContent=t;E.status.className="status "+type}
-function enable(){[E.analyze,E.manual,E.reset,E.export].forEach(b=>b.disabled=false)}
+function num(id,f){const el=E[id];if(!el)return f;const n=Number(el.value);return Number.isFinite(n)?n:f}
 function P(lm,i){return{x:lm[i].x*E.canvas.width,y:lm[i].y*E.canvas.height}}
 function avg(lm,ids){const ps=ids.map(i=>P(lm,i));return{x:ps.reduce((s,p)=>s+p.x,0)/ps.length,y:ps.reduce((s,p)=>s+p.y,0)/ps.length}}
-function local(frame,p){const d=sub(p,frame.eyeCenter);return{x:dot(d,frame.x),y:dot(d,frame.y)}}
-function world(frame,x,y){return add(frame.eyeCenter,add(mul(frame.x,x),mul(frame.y,y)))}
-function shifted(p,dx,dy){return{x:p.x+dx,y:p.y+dy}}
+function world(frame,x,y){return add(frame.origin,add(mul(frame.x,x),mul(frame.y,y)))}
+function local(frame,p){const d=sub(p,frame.origin);return{x:dot(d,frame.x),y:dot(d,frame.y)}}
 
-function makeData(lm){
- const el=mid(P(lm,33),P(lm,133));
- const er=mid(P(lm,362),P(lm,263));
- const eyeCenter=mid(el,er);
-
- const rawX=norm(sub(er,el));
+function classifyPose(yaw){
+ const a=Math.abs(yaw);
+ if(a<.13)return"face";
+ if(a<.34)return"trois-quarts léger";
+ if(a<.66)return"trois-quarts prononcé";
+ return"profil";
+}
+function buildMeasurements(lm){
+ const eyeL=mid(P(lm,33),P(lm,133));
+ const eyeR=mid(P(lm,362),P(lm,263));
+ const eyeMid=mid(eyeL,eyeR);
+ const rawX=norm(sub(eyeR,eyeL));
  const rawRoll=Math.atan2(rawX.y,rawX.x);
- const correctedRoll=rawRoll*.72;
- const x={x:Math.cos(correctedRoll),y:Math.sin(correctedRoll)};
- let y=perp(x);
- if(y.y<0)y=mul(y,-1);
+ const roll=rawRoll*.68;
+ const x={x:Math.cos(roll),y:Math.sin(roll)};
+ let y=perp(x);if(y.y<0)y=mul(y,-1);
 
- const eyeSpan=len(sub(er,el));
- const chin=P(lm,152);
- const nose=P(lm,1);
- const hairline=P(lm,10);
- const browL=avg(lm,[70,63,105,66,107]);
- const browR=avg(lm,[336,296,334,293,300]);
- const browMid=mid(browL,browR);
- const templeL=P(lm,234);
- const templeR=P(lm,454);
- const cheekL=P(lm,123);
- const cheekR=P(lm,352);
- const faceLeft=P(lm,234);
- const faceRight=P(lm,454);
+ const frame={origin:eyeMid,x,y};
+ const nose=P(lm,1),chin=P(lm,152);
+ const templeL=P(lm,234),templeR=P(lm,454);
+ const cheekL=P(lm,123),cheekR=P(lm,352);
+ const browL=avg(lm,[70,63,105,66,107]),browR=avg(lm,[336,296,334,293,300]),browMid=mid(browL,browR);
+ const hair=P(lm,10);
 
- const noseSide=dot(sub(nose,eyeCenter),x);
- const yawRaw=clamp(noseSide/(eyeSpan*.58),-.98,.98);
+ const eyeSpan=len(sub(eyeR,eyeL));
+ const noseLocal=local(frame,nose);
+ const yawFromNose=clamp(noseLocal.x/(eyeSpan*.55),-.98,.98);
+ const leftSide=len(sub(nose,templeL)),rightSide=len(sub(nose,templeR));
+ const asym=(rightSide-leftSide)/Math.max(1,leftSide+rightSide);
+ const yaw=clamp(yawFromNose*.78+asym*2.15*.22,-.98,.98);
 
- // Mesure de perspective gauche/droite pour stabiliser le yaw.
- const leftDepth=len(sub(nose,faceLeft));
- const rightDepth=len(sub(nose,faceRight));
- const asym=(rightDepth-leftDepth)/Math.max(1,leftDepth+rightDepth);
- const yaw=clamp(yawRaw*.72+asym*2.4*.28,-.98,.98);
-
- const backSign=yaw>=0?-1:1;
- const eyeToChin=Math.max(1,dot(sub(chin,eyeCenter),y));
- const browToChin=Math.max(1,dot(sub(chin,browMid),y));
+ const eyeToChin=Math.max(1,local(frame,chin).y);
+ const browToChin=Math.max(1,local(frame,chin).y-local(frame,browMid).y);
  const templeSpan=len(sub(templeR,templeL));
  const cheekSpan=len(sub(cheekR,cheekL));
+ const pose=classifyPose(yaw);
 
- const absYaw=Math.abs(yaw);
- let poseType="face";
- if(absYaw>=.72)poseType="profil";
- else if(absYaw>=.36)poseType="trois-quarts prononcé";
- else if(absYaw>=.16)poseType="trois-quarts léger";
+ const symmetry=1-Math.min(1,Math.abs(asym)*2.4);
+ const ratio=templeSpan/Math.max(1,browToChin);
+ const confidence=clamp(.55+symmetry*.25+(eyeSpan>40?.15:0),.35,.95);
 
- const hairLocal=local({eyeCenter,x,y},hairline);
-
- // Sommet osseux estimé, pas sommet de la coiffure.
- // Plus la tête est de face, moins on pousse vers l'arrière.
- const crownBack=backSign*eyeSpan*(.02+.08*absYaw);
- const crownLift=eyeToChin*(.43+.06*absYaw);
- const crownAuto=world(
-   {eyeCenter,x,y},
-   hairLocal.x+crownBack,
-   hairLocal.y-crownLift
- );
-
- return{
-   el,er,eyeCenter,x,y,eyeSpan,chin,nose,hairline,
-   browL,browR,browMid,templeL,templeR,cheekL,cheekR,
-   yaw,rawRoll,correctedRoll,backSign,eyeToChin,browToChin,
-   templeSpan,cheekSpan,poseType,crown:crownAuto,crownAuto
- };
+ return{frame,eyeL,eyeR,eyeMid,nose,chin,templeL,templeR,cheekL,cheekR,browL,browR,browMid,hair,eyeSpan,eyeToChin,browToChin,templeSpan,cheekSpan,yaw,roll,pose,ratio,confidence};
 }
-function opts(){return{
- radius:controlNumber("radius",88)/100,
- back:controlNumber("back",28)/100,
- lift:controlNumber("lift",12)/100,
- crown:controlNumber("crown",0)/100,
- a:controlNumber("opacity",92)/100,
- s:controlNumber("stroke",3)
-}}
-function geometry(){
- if(!S.data)return null;
+function reconstructHead(m){
+ const size=num("size",100)/100;
+ const backAdj=num("back",0)/100;
+ const liftAdj=num("lift",0)/100;
+ const absYaw=Math.abs(m.yaw);
+ const backSign=m.yaw>=0?-1:1;
 
- const d=S.data,o=opts();
- const browLocal=local(d,d.browMid);
- const chinLocal=local(d,d.chin);
- const noseLocal=local(d,d.nose);
- const absYaw=Math.abs(d.yaw);
+ // Modèle anatomique indépendant :
+ // largeur osseuse, hauteur faciale et écartement des yeux sont combinés.
+ const radiusHeight=m.browToChin*.83;
+ const radiusEyes=m.eyeSpan*1.52;
+ const radiusTemple=m.templeSpan*.59;
+ const radiusCheek=m.cheekSpan*.61;
 
- // Rayon anatomique V5 :
- // on limite l'influence de la largeur apparente du visage,
- // puis on applique une réduction globale d'environ 12 %.
- const rFromHeight=d.browToChin*.72;
- const rFromEyes=d.eyeSpan*1.34;
- const rFromTemples=d.templeSpan*.54;
- const rFromCheeks=d.cheekSpan*.57;
+ let radius=
+   radiusHeight*.42+
+   radiusEyes*.24+
+   radiusTemple*.24+
+   radiusCheek*.10;
 
- let rBase;
- if(d.poseType==="face"){
-   rBase=(rFromHeight*.46+rFromEyes*.28+rFromTemples*.18+rFromCheeks*.08);
- }else if(d.poseType==="trois-quarts léger"){
-   rBase=(rFromHeight*.44+rFromEyes*.25+rFromTemples*.21+rFromCheeks*.10);
- }else if(d.poseType==="trois-quarts prononcé"){
-   rBase=(rFromHeight*.42+rFromEyes*.22+rFromTemples*.24+rFromCheeks*.12);
- }else{
-   rBase=(rFromHeight*.40+rFromEyes*.18+rFromTemples*.28+rFromCheeks*.14);
- }
+ // Compensation perspective modérée, jamais un simple coefficient global.
+ radius*=1+absYaw*.055;
+ radius*=size;
 
- const r=rBase*.88*o.radius;
+ // Sommet théorique dérivé de l'os, pas des cheveux.
+ const hairLocal=local(m.frame,m.hair);
+ const crownY=hairLocal.y-m.eyeToChin*(.42+.045*absYaw);
+ const crownX=hairLocal.x+backSign*m.eyeSpan*(.025+.06*absYaw);
 
- const crownBase=add(d.crown,mul(d.y,-d.eyeToChin*o.crown));
- const crownLocal=local(d,crownBase);
-
- // Décalage arrière adaptatif.
  let backFactor;
- if(d.poseType==="face")backFactor=.025;
- else if(d.poseType==="trois-quarts léger")backFactor=.11;
- else if(d.poseType==="trois-quarts prononcé")backFactor=.21;
- else backFactor=.30;
+ if(m.pose==="face")backFactor=.03;
+ else if(m.pose==="trois-quarts léger")backFactor=.12;
+ else if(m.pose==="trois-quarts prononcé")backFactor=.23;
+ else backFactor=.32;
+ backFactor+=backAdj*.28;
 
- backFactor+=o.back*.24;
- const backOffset=d.backSign*r*backFactor;
-
- // Hauteur adaptative. Très faible de face, plus marquée en trois-quarts/profil.
  let liftFactor;
- if(d.poseType==="face")liftFactor=.035;
- else if(d.poseType==="trois-quarts léger")liftFactor=.06;
- else if(d.poseType==="trois-quarts prononcé")liftFactor=.082;
- else liftFactor=.095;
- liftFactor+=o.lift*.16;
+ if(m.pose==="face")liftFactor=.02;
+ else if(m.pose==="trois-quarts léger")liftFactor=.04;
+ else if(m.pose==="trois-quarts prononcé")liftFactor=.065;
+ else liftFactor=.08;
+ liftFactor+=liftAdj*.16;
 
- const centerY=crownLocal.y+r-r*liftFactor;
- const center=world(d,backOffset,centerY);
- const top=world(d,backOffset,centerY-r);
- const bottom=world(d,backOffset,centerY+r);
+ const centerLocal={x:crownX+backSign*radius*backFactor,y:crownY+radius-radius*liftFactor};
+ const center=world(m.frame,centerLocal.x,centerLocal.y);
+ const top=world(m.frame,centerLocal.x,centerLocal.y-radius);
+ const bottom=world(m.frame,centerLocal.x,centerLocal.y+radius);
 
- const browY=browLocal.y;
+ const browY=local(m.frame,m.browMid).y;
+ const nearLeft=m.yaw<0;
+ const farScale=1-.18*absYaw;
+ const leftScale=nearLeft?1:farScale,rightScale=nearLeft?farScale:1;
+ const browA=world(m.frame,-radius*.90*leftScale,browY);
+ const browB=world(m.frame, radius*.90*rightScale,browY);
+ const browM=world(m.frame,m.yaw*radius*.15,browY-radius*(.02+.025*absYaw));
 
- // Ligne des sourcils adaptée à la perspective.
- const nearScale=1;
- const farScale=1-.20*absYaw;
- const leftNear=d.yaw<0;
- const leftScale=leftNear?nearScale:farScale;
- const rightScale=leftNear?farScale:nearScale;
+ const equatorA=world(m.frame,-radius*.98,centerLocal.y);
+ const equatorB=world(m.frame, radius*.98,centerLocal.y);
+ const equatorM=world(m.frame,m.yaw*radius*.20,centerLocal.y-radius*.03*absYaw);
 
- const browA=world(d,-r*.90*leftScale,browY);
- const browB=world(d, r*.90*rightScale,browY);
- const browM=world(
-   d,
-   d.yaw*r*(.10+.10*absYaw),
-   browY-r*(.02+.035*absYaw)
- );
+ const noseLocal=local(m.frame,m.nose);
+ let axisTopX=centerLocal.x;
+ let axisMidX=m.yaw*radius*.16;
+ let axisBottomX=noseLocal.x+m.yaw*radius*.035;
+ if(m.pose==="face"){axisTopX*=.18;axisMidX*=.25;axisBottomX*=.25}
+ const axisTop=world(m.frame,axisTopX,centerLocal.y-radius);
+ const axisMid=world(m.frame,axisMidX,browY);
+ const axisBottom=world(m.frame,axisBottomX,noseLocal.y+m.eyeToChin*.045);
 
- // Équateur volumique.
- const equatorA=world(d,-r*.98,centerY);
- const equatorB=world(d, r*.98,centerY);
- const equatorM=world(
-   d,
-   d.yaw*r*(.08+.18*absYaw),
-   centerY-r*(.01+.04*absYaw)
- );
-
- // Axe central adaptatif.
- let axisTopX=backOffset;
- let axisMidX=d.yaw*r*(.05+.16*absYaw);
- let axisBottomX=noseLocal.x+d.yaw*r*(.02+.05*absYaw);
-
- if(d.poseType==="face"){
-   axisTopX*=.25;
-   axisMidX*=.35;
-   axisBottomX*=.35;
- }
-
- const axisTop=world(d,axisTopX,centerY-r);
- const axisMid=world(d,axisMidX,browY-r*.01);
- const axisBottomY=Math.min(
-   noseLocal.y+d.eyeToChin*.05,
-   chinLocal.y-d.eyeToChin*.28
- );
- const axisBottom=world(d,axisBottomX,axisBottomY);
-
- return{
-   ...o,r,center,top,bottom,browA,browB,browM,
-   equatorA,equatorB,equatorM,axisTop,axisMid,axisBottom,
-   poseType:d.poseType,yaw:d.yaw
- };
+ return{radius,center,top,bottom,browA,browB,browM,equatorA,equatorB,equatorM,axisTop,axisMid,axisBottom};
 }
 function stroke(draw,color,w,a,dash=[]){
  ctx.save();ctx.strokeStyle=color;ctx.lineWidth=w;ctx.globalAlpha=a;ctx.lineCap="round";ctx.lineJoin="round";ctx.setLineDash(dash);ctx.beginPath();draw(ctx);ctx.stroke();ctx.restore();
 }
 function curve(a,m,b,color,w,alpha,dash=[]){stroke(c=>{c.moveTo(a.x,a.y);c.quadraticCurveTo(m.x,m.y,b.x,b.y)},color,w,alpha,dash)}
-function dotHandle(p,color,r=7){
- ctx.save();ctx.fillStyle=color;ctx.strokeStyle="#16191b";ctx.lineWidth=2;ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();
-}
+function handle(p,color,r=6){ctx.save();ctx.fillStyle=color;ctx.strokeStyle="#111";ctx.lineWidth=2;ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore()}
 function draw(){
  if(!S.img)return;
- ctx.clearRect(0,0,E.canvas.width,E.canvas.height);ctx.drawImage(S.img,0,0,E.canvas.width,E.canvas.height);
- const g=geometry();if(!g)return;
-if(E.poseStatus)E.poseStatus.innerHTML="<b>Pose détectée :</b> "+g.poseType+" · yaw "+Math.round(g.yaw*90)+"°";
- const angle=Math.atan2(S.data.x.y,S.data.x.x);
- if(E.sphere.checked){
-   ctx.save();ctx.strokeStyle="#ff4a2d";ctx.lineWidth=g.s;ctx.globalAlpha=g.a;ctx.beginPath();ctx.arc(g.center.x,g.center.y,g.r,0,Math.PI*2);ctx.stroke();ctx.restore();
+ ctx.clearRect(0,0,E.canvas.width,E.canvas.height);
+ ctx.drawImage(S.img,0,0,E.canvas.width,E.canvas.height);
+ if(!S.data)return;
+ const g=reconstructHead(S.data);
+ const alpha=num("opacity",92)/100,w=num("stroke",3);
+ if(E.sphere.checked){ctx.save();ctx.strokeStyle="#ff4b2f";ctx.lineWidth=w;ctx.globalAlpha=alpha;ctx.beginPath();ctx.arc(g.center.x,g.center.y,g.radius,0,Math.PI*2);ctx.stroke();ctx.restore()}
+ if(E.brow.checked)curve(g.browA,g.browM,g.browB,"#ff4b2f",w,alpha);
+ if(E.equator.checked)curve(g.equatorA,g.equatorM,g.equatorB,"#ff9a86",w*.75,alpha*.72,[7,7]);
+ if(E.axis.checked)curve(g.axisTop,g.axisMid,g.axisBottom,"#54d5a0",w,alpha);
+ if(E.anchors.checked){
+   handle(S.data.eyeL,"#4db4ff",4);handle(S.data.eyeR,"#4db4ff",4);
+   handle(S.data.templeL,"#efb85f",4);handle(S.data.templeR,"#efb85f",4);
+   handle(g.top,"#ff4b2f",6);
  }
- if(E.brow.checked)curve(g.browA,g.browM,g.browB,"#ff4a2d",g.s,g.a);
- if(E.equator.checked)curve(g.equatorA,g.equatorM,g.equatorB,"#ff9a86",g.s*.75,g.a*.75,[7,7]);
- if(E.center.checked)curve(g.axisTop,g.axisMid,g.axisBottom,"#52d59c",g.s,g.a);
- stroke(c=>{c.moveTo(S.data.el.x,S.data.el.y);c.lineTo(S.data.er.x,S.data.er.y)},"#4cb4ff",Math.max(1,g.s*.7),.75,[5,5]);
- if(E.handles.checked){dotHandle(g.top,"#ff4a2d",8);dotHandle(S.data.browMid,"#4cb4ff",5)}
+ E.pose.innerHTML="<b>Pose :</b> "+S.data.pose;
+ E.yaw.textContent=Math.round(S.data.yaw*90)+"°";
+ E.roll.textContent=Math.round(S.data.roll*180/Math.PI)+"°";
+ E.ratio.textContent=S.data.ratio.toFixed(2);
+ E.confidence.textContent=Math.round(S.data.confidence*100)+"%";
 }
+function canvasPoint(ev){const r=E.canvas.getBoundingClientRect();return{x:(ev.clientX-r.left)*E.canvas.width/r.width,y:(ev.clientY-r.top)*E.canvas.height/r.height}}
 function importPhoto(file){
  if(!file)return;
- setStatus("Ouverture de la photo…");
  const reader=new FileReader();
+ setStatus("Ouverture de la photo…");
  reader.onerror=()=>setStatus("Impossible de lire le fichier.","err");
- reader.onload=()=>{const im=new Image();im.onerror=()=>setStatus("Format non pris en charge.","err");im.onload=()=>{
+ reader.onload=()=>{const im=new Image();im.onerror=()=>setStatus("Image non prise en charge.","err");im.onload=()=>{
    S.img=im;S.name=(file.name||"loomi").replace(/\.[^.]+$/,"");
    const sc=Math.min(1,1900/Math.max(im.naturalWidth,im.naturalHeight));
-   E.canvas.width=Math.round(im.naturalWidth*sc);E.canvas.height=Math.round(im.naturalHeight*sc);
-   E.empty.style.display="none";S.data=null;enable();E.analyze.disabled=false;setStatus("Photo prête. Clique sur Analyser.","ok");draw();
+   E.canvas.width=Math.max(1,Math.round(im.naturalWidth*sc));E.canvas.height=Math.max(1,Math.round(im.naturalHeight*sc));
+   E.empty.style.display="none";S.data=null;[E.analyze,E.placeCrown,E.reset,E.export].forEach(b=>b.disabled=false);
+   setStatus("Photo prête. Clique sur Analyser.","ok");draw();
  };im.src=reader.result};reader.readAsDataURL(file);
 }
-async function createFreshMesh(){
- if(!window.FaceMesh)throw new Error("La bibliothèque d’analyse n’est pas chargée.");
- const mesh=new FaceMesh({
-   locateFile:file=>"https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/"+file
- });
- mesh.setOptions({
-   maxNumFaces:1,
-   refineLandmarks:false,
-   minDetectionConfidence:.45,
-   minTrackingConfidence:.45
- });
+async function freshMesh(){
+ let tries=0;while(!window.FaceMesh&&tries++<120)await sleep(100);
+ if(!window.FaceMesh)throw new Error("MediaPipe n’a pas chargé.");
+ const mesh=new FaceMesh({locateFile:f=>"https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/"+f});
+ mesh.setOptions({maxNumFaces:1,refineLandmarks:false,minDetectionConfidence:.45,minTrackingConfidence:.45});
  return mesh;
 }
 async function analyze(){
  if(!S.img||S.busy)return;
-
- S.busy=true;
- E.analyze.disabled=true;
- E.loader.hidden=false;
- setStatus("1/3 — Chargement du moteur…","ok");
-
- let mesh=null;
+ S.busy=true;E.analyze.disabled=true;E.loader.hidden=false;setStatus("Analyse du visage…","ok");
+ let mesh=null,timer=null;
  try{
-   mesh=await createFreshMesh();
-   S.mesh=mesh;
-
-   const resultPromise=new Promise((resolve,reject)=>{
-     let finished=false;
-
-     const finish=value=>{
-       if(finished)return;
-       finished=true;
-       clearTimeout(S.analysisTimer);
-       resolve(value);
-     };
-
-     mesh.onResults(results=>finish(results));
-
-     S.analysisTimer=setTimeout(()=>{
-       if(finished)return;
-       finished=true;
-       reject(new Error("L’analyse a dépassé 20 secondes."));
-     },20000);
+   mesh=await freshMesh();
+   const results=await new Promise(async(resolve,reject)=>{
+     let done=false;
+     timer=setTimeout(()=>{if(!done){done=true;reject(new Error("Délai dépassé."))}},20000);
+     mesh.onResults(r=>{if(!done){done=true;clearTimeout(timer);resolve(r)}});
+     try{await mesh.send({image:S.img})}catch(e){if(!done){done=true;clearTimeout(timer);reject(e)}}
    });
-
-   setStatus("2/3 — Recherche du visage…","ok");
-
-   // Un seul appel MediaPipe, directement avec l'image importée.
-   const sendPromise=mesh.send({image:S.img});
-   const results=await resultPromise;
-   await sendPromise.catch(()=>{});
-
-   setStatus("3/3 — Construction de la sphère…","ok");
-
-   if(!results.multiFaceLandmarks||!results.multiFaceLandmarks.length){
-     throw new Error("Aucun visage détecté sur cette photo.");
-   }
-
-   S.data=makeData(results.multiFaceLandmarks[0]);
-   draw();
-   setStatus("Analyse terminée. La sphère a été adaptée à la pose détectée.","ok");
- }catch(err){
-   setStatus("Analyse impossible : "+(err&&err.message?err.message:"erreur inconnue"),"err");
- }finally{
-   clearTimeout(S.analysisTimer);
-   E.loader.hidden=true;
-   S.busy=false;
-   E.analyze.disabled=!S.img;
-   try{if(mesh&&mesh.close)await mesh.close()}catch(e){}
-   if(S.mesh===mesh)S.mesh=null;
- }
-}
-function canvasPoint(ev){const r=E.canvas.getBoundingClientRect();return{x:(ev.clientX-r.left)*E.canvas.width/r.width,y:(ev.clientY-r.top)*E.canvas.height/r.height}}
-function near(a,b,r){return len(sub(a,b))<=r}
-E.canvas.addEventListener("pointerdown",ev=>{
- if(!S.data)return;const p=canvasPoint(ev),g=geometry();
- if(S.placing||near(p,g.top,28)){S.drag=true;S.placing=false;E.canvas.setPointerCapture(ev.pointerId);S.data.crown=p;setStatus("Sommet du crâne déplacé.","ok");draw()}
-});
-E.canvas.addEventListener("pointermove",ev=>{if(!S.drag||!S.data)return;S.data.crown=canvasPoint(ev);draw()});
-E.canvas.addEventListener("pointerup",ev=>{S.drag=false;try{E.canvas.releasePointerCapture(ev.pointerId)}catch(e){}});
-
-async function init(){
- E.badge.textContent="Chargement de la bibliothèque…";
- E.badge.className="badge";
- let attempts=0;
- while(!window.FaceMesh&&attempts++<120){
-   await new Promise(resolve=>setTimeout(resolve,100));
- }
- if(window.FaceMesh){
-   S.ready=true;
-   E.badge.textContent="Analyse disponible";
-   E.badge.className="badge ok";
-   if(S.img)setStatus("Photo prête. Clique sur Analyser.","ok");
- }else{
-   S.ready=false;
-   E.badge.textContent="Bibliothèque indisponible";
-   E.badge.className="badge err";
-   setStatus("La bibliothèque MediaPipe n’a pas chargé. Vérifie la connexion puis recharge la page.","err");
- }
+   if(!results.multiFaceLandmarks||!results.multiFaceLandmarks.length)throw new Error("Aucun visage détecté.");
+   S.data=buildMeasurements(results.multiFaceLandmarks[0]);
+   setStatus("Analyse terminée. Modèle anatomique reconstruit.","ok");draw();
+ }catch(e){setStatus("Analyse impossible : "+e.message,"err")}
+ finally{clearTimeout(timer);E.loader.hidden=true;S.busy=false;E.analyze.disabled=false;try{if(mesh&&mesh.close)await mesh.close()}catch(e){}}
 }
 E.file.addEventListener("change",e=>importPhoto(e.target.files&&e.target.files[0]));
-E.analyze.addEventListener("click",()=>{setStatus("Clic reçu. Démarrage de l’analyse…","ok");analyze()});
-E.manual.addEventListener("click",()=>{if(!S.data){setStatus("Analyse d’abord le visage.","err");return}S.placing=true;setStatus("Clique sur le vrai sommet du crâne.","ok")});
-E.reset.addEventListener("click",()=>{if(!S.data)return;S.data.crown={...S.data.crownAuto};["radius","back","lift","crown"].forEach((id,i)=>{const el=E[id]||document.getElementById(id);if(el)el.value=[88,18,10,0][i]});draw();setStatus("Réglages remis à zéro.","ok")});
-E.export.addEventListener("click",()=>{if(!S.img)return;draw();const a=document.createElement("a");a.download=S.name+"-geometry-v1.png";a.href=E.canvas.toDataURL("image/png");a.click()});
-["sphere","brow","center","equator","handles","radius","back","lift","crown","opacity","stroke"].forEach(id=>bindInput(id,draw));
-init();
+E.analyze.addEventListener("click",analyze);
+E.placeCrown.addEventListener("click",()=>setStatus("Le placement manuel du sommet sera réactivé après validation du modèle automatique.","ok"));
+E.reset.addEventListener("click",()=>{E.size.value=100;E.back.value=0;E.lift.value=0;draw();setStatus("Corrections remises à zéro.","ok")});
+E.export.addEventListener("click",()=>{if(!S.img)return;draw();const a=document.createElement("a");a.download=S.name+"-geometry-2-0.png";a.href=E.canvas.toDataURL("image/png");a.click()});
+["sphere","axis","brow","equator","anchors","size","back","lift","opacity","stroke"].forEach(id=>E[id].addEventListener("input",draw));
+(async()=>{let t=0;while(!window.FaceMesh&&t++<120)await sleep(100);if(window.FaceMesh){E.badge.textContent="Analyse disponible";E.badge.className="badge ok"}else{E.badge.textContent="MediaPipe indisponible";E.badge.className="badge err"}})();
 })();
 </script>
 </body>
