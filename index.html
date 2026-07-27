@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Loomi Engine V3.4 Landmarks</title>
+<title>Loomi Engine V3.4.1.1 Analysis Fix</title>
 <style>
 :root{--bg:#090c0e;--panel:#151a1e;--panel2:#20272c;--line:#354047;--text:#f6f7f8;--muted:#9ca7ad;--gold:#e8b25e;--green:#57d7a2;--red:#ff7878}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -30,7 +30,7 @@ canvas{display:block;max-width:100%;max-height:100%;touch-action:none}.empty{tex
 </head>
 <body>
 <header>
-<div><small>LOOMI METHOD</small><h1>Loomi Engine <b>V3.4 Landmarks</b></h1></div>
+<div><small>LOOMI METHOD</small><h1>Loomi Engine <b>V3.4.1 Analysis Fix</b></h1></div>
 <span id="badge" class="badge">Chargement du moteur…</span>
 </header>
 
@@ -219,6 +219,7 @@ function poly(c,pts,color,w,alpha){
 function geometry(f,o){
  const scale=o.scale, sw=f.skullW*o.sw*scale, sh=f.skullH*o.sh*scale;
  const backShift=-f.yaw*sw*.16;
+ const browY=((f.L.browL||f.L.el).y+(f.L.browR||f.L.er).y)/2;
  const crownY=f.L.top.y;
  const skullBaseY=Math.max((f.L.tl.y+f.L.tr.y)/2+sh*.28, browY+sh*.34);
  const skullCenterY=(crownY+skullBaseY)/2;
@@ -233,7 +234,6 @@ function geometry(f,o){
  const yawOpen=.58+.42*Math.abs(f.yaw);
  const sideRx=sw*(.145+.045*yawOpen)*o.side;
  const sideRy=sh*.255*o.side;
- const browY=((f.L.browL||f.L.el).y+(f.L.browR||f.L.er).y)/2;
  const eyeY=(f.L.el.y+f.L.er.y)/2;
  const noseY=(f.L.noseBase||f.L.no).y;
  const mouthY=f.L.mo.y;
@@ -398,7 +398,12 @@ async function initMesh(){
    S.mesh.onResults(res=>{
      E.loader.hidden=true;
      if(!res.multiFaceLandmarks||!res.multiFaceLandmarks.length){setStatus("Aucun visage détecté. Utilise le mode manuel.","err");return}
-     S.fit=fromLandmarks(res.multiFaceLandmarks[0]);S.manual=false;S.manualPoints=[];setStatus("Analyse terminée. Structure Loomis reconstruite.","ok");draw();
+     try{
+       S.fit=fromLandmarks(res.multiFaceLandmarks[0]);S.manual=false;S.manualPoints=[];draw();
+       setStatus("Analyse terminée. Structure Loomis reconstruite.","ok");
+     }catch(err){
+       console.error(err);S.fit=null;setStatus("Le visage a été détecté, mais le dessin a rencontré une erreur. Recharge cette version.","err");
+     }
    });
    S.ready=true;E.badge.textContent="Moteur prêt";E.badge.className="badge ok";
  }catch(e){E.badge.textContent="Mode manuel disponible";E.badge.className="badge err";setStatus("Analyse automatique indisponible. Le mode manuel reste utilisable.","err")}

@@ -1,11 +1,5 @@
-# Loomi Engine V3.4 Landmarks
+# Loomi Engine V3.4.1 Analysis Fix
 
-Corrections ciblées :
+Correction d’une erreur JavaScript dans le calcul du crâne : la ligne des sourcils était utilisée avant son initialisation, ce qui interrompait le rendu juste après la détection du visage.
 
-- le haut du cercle crânien atteint le sommet estimé du crâne ;
-- le trait du nez passe sur la base du nez ;
-- le trait des sourcils traverse le milieu des sourcils ;
-- une ligne front / implantation des cheveux a été ajoutée ;
-- le plan latéral et les autres repères de la V3.3 sont conservés.
-
-Aucun Service Worker ni cache applicatif.
+Les améliorations de la V3.4 sont conservées : sommet du crâne, base du nez, milieu des sourcils et ligne front/cheveux.
