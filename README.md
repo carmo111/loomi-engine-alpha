@@ -1,13 +1,14 @@
-# Loomi Geometry Engine V3.1.1
+# Loomi Geometry Engine V3.1.2
 
-Correctif d'analyse mobile :
+Correctif radical de l'analyse :
 
-- réduction automatique de la photo avant MediaPipe ;
-- retour visuel immédiat après appui sur Analyser ;
-- délai maximal de 15 secondes ;
-- déblocage automatique du bouton ;
-- redémarrage de MediaPipe si l'analyse se fige ;
-- seuil de détection légèrement assoupli ;
-- erreurs affichées directement dans l'interface.
+- suppression totale du préchargement MediaPipe ;
+- aucun appel d'analyse au démarrage de la page ;
+- création d'un moteur neuf uniquement après le clic ;
+- un seul appel MediaPipe par analyse ;
+- progression visible en trois étapes ;
+- délai maximal de 20 secondes ;
+- fermeture propre du moteur après chaque analyse ;
+- géométrie V3.1 conservée.
 
-La géométrie du crâne de la V3.1 est conservée.
+Aucun Service Worker ni cache applicatif.
